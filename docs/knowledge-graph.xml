@@ -1,13 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <KnowledgeGraph>
-  <Modules>
-    <Module id="M-APP">
-      <Name>Application Entry</Name>
-      <Functions>
-        <Function id="F-MAIN">main</Function>
-      </Functions>
-    </Module>
-  </Modules>
+  <Module id="M-CORE">
+    <Name>Core Models &amp; Loader</Name>
+    <Functions>
+      <Function id="F-load_plan">
+        <Name>load_development_plan</Name>
+        <Signature>load_development_plan(path: str) -> DevelopmentPlan</Signature>
+      </Function>
+      <Function id="F-generate_packet">
+        <Name>generate_controller_packet</Name>
+        <Signature>generate_controller_packet(plan, wave_id) -> str</Signature>
+      </Function>
+    </Functions>
+    <Links>
+      <UseCase id="UC-PLAN-LOAD" />
+      <UseCase id="UC-PACKET-GEN" />
+    </Links>
+  </Module>
+  <Module id="M-REVIEWER">
+    <Name>Gate Reviewer</Name>
+    <Functions>
+      <Function id="F-review_wave">
+        <Name>review_wave</Name>
+        <Signature>review_wave(wave, commit_ref) -> dict</Signature>
+      </Function>
+      <Function id="F-check_scope">
+        <Name>check_write_scope</Name>
+        <Signature>check_write_scope(changed, allowed) -> list</Signature>
+      </Function>
+    </Functions>
+    <Links>
+      <UseCase id="UC-GATE-CHECK" />
+    </Links>
+  </Module>
+  <Module id="M-ORCHESTRATOR">
+    <Name>Orchestrator</Name>
+    <Functions>
+      <Function id="F-run">
+        <Name>run</Name>
+        <Signature>run() -> OrchestratorResult</Signature>
+      </Function>
+    </Functions>
+    <Links>
+      <UseCase id="UC-ORCHESTRATE" />
+      <Scenario id="SCN-BOOT" />
+    </Links>
+  </Module>
+  <ExternalSystem id="EXT-GIT">
+    <Name>Git VCS</Name>
+    <Type>version_control</Type>
+  </ExternalSystem>
+  <ExternalSystem id="EXT-PYTHON">
+    <Name>Python 3.9+ Runtime</Name>
+    <Type>runtime</Type>
+  </ExternalSystem>
+  <Defect id="DEFECT-001">
+    <Title>Git diff fails outside repository context</Title>
+    <Severity>medium</Severity>
+    <AffectedModule id="M-REVIEWER" />
+  </Defect>
+  <Defect id="DEFECT-002">
+    <Title>Wave selection only supports first phase default</Title>
+    <Severity>low</Severity>
+    <AffectedModule id="M-ORCHESTRATOR" />
+  </Defect>
   <CrossLinks>
-    <Link source="UC-EXEC-1" target="M-APP" />
+    <Link>
+      <UseCase id="UC-PLAN-LOAD" />
+      <Module id="M-CORE" />
+      <Verification id="SCN-BOOT" />
+    </Link>
+    <Link>
+      <UseCase id="UC-GATE-CHECK" />
+      <Module id="M-REVIEWER" />
+      <Verification id="SCN-BOOT" />
+    </Link>
+    <Link>
+      <UseCase id="UC-ORCHESTRATE" />
+      <Module id="M-ORCHESTRATOR" />
+      <Verification id="SCN-BOOT" />
+    </Link>
   </CrossLinks>
 </KnowledgeGraph>
