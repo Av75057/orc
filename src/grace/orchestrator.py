@@ -1,0 +1,132 @@
+from typing import Optional, Dict, Any, List
+from dataclasses import dataclass, field
+
+from src.grace.models import DevelopmentPlan, Wave, Phase
+from src.grace.artifact_loader import load_development_plan
+from src.grace.controller import generate_controller_packet
+from src.grace.reviewer import review_wave
+
+
+@dataclass
+class OrchestratorResult:
+    status: str
+    phase_id: str = ""
+    wave_id: str = ""
+    reason: Optional[str] = None
+    waves_completed: int = 0
+    failure_packet: Optional[str] = None
+
+
+class GraceOrchestrator:
+    def __init__(self, plan: DevelopmentPlan):
+        self.plan = plan
+        self._phase_idx: int = 0
+        self._wave_idx: int = 0
+
+    @property
+    def current_wave(self) -> Optional[Wave]:
+        try:
+            return self.plan.phases[self._phase_idx].waves[self._wave_idx]
+        except IndexError:
+            return None
+
+    @property
+    def current_phase(self) -> Optional[Phase]:
+        try:
+            return self.plan.phases[self._phase_idx]
+        except IndexError:
+            return None
+
+    @property
+    def has_next(self) -> bool:
+        if not self.plan.phases:
+            return False
+        phase = self.plan.phases[self._phase_idx]
+        if self._wave_idx + 1 < len(phase.waves):
+            return True
+        if self._phase_idx + 1 < len(self.plan.phases):
+            return True if self.plan.phases[self._phase_idx + 1].waves else False
+        return False
+
+    def _advance(self) -> bool:
+        phase = self.plan.phases[self._phase_idx]
+        if self._wave_idx + 1 < len(phase.waves):
+            self._wave_idx += 1
+            return True
+        if self._phase_idx + 1 < len(self.plan.phases):
+            self._phase_idx += 1
+            self._wave_idx = 0
+            return True if self.plan.phases[self._phase_idx].waves else False
+        self._phase_idx = len(self.plan.phases)
+        self._wave_idx = 0
+        return False
+
+    def execute_worker_task(self, packet: str) -> bool:
+        return True
+
+    def _build_failure_packet(self, reason: str) -> str:
+        wave = self.current_wave
+        phase = self.current_phase
+        wave_id = wave.id if wave else "N/A"
+        phase_id = phase.id if phase else "N/A"
+        return f"""# Orchestrator Failure Packet
+
+## Status: FAILED
+
+## Execution Context
+- Phase: {phase_id}
+- Wave: {wave_id}
+
+## Reason
+{reason}
+
+## Action
+Orchestrator execution stopped. Manual intervention required.
+"""
+
+    def run(self) -> OrchestratorResult:
+        waves_completed = 0
+
+        while self.current_wave is not None:
+            wave = self.current_wave
+            phase = self.current_phase
+            wave_id = wave.id
+            phase_id = phase.id if phase else ""
+
+            packet = generate_controller_packet(self.plan, wave_id)
+
+            worker_ok = self.execute_worker_task(packet)
+            if not worker_ok:
+                return OrchestratorResult(
+                    status="FAILED",
+                    phase_id=phase_id,
+                    wave_id=wave_id,
+                    reason="Worker task execution failed",
+                    waves_completed=waves_completed,
+                    failure_packet=self._build_failure_packet(
+                        "Worker task execution failed"
+                    ),
+                )
+
+            review = review_wave(wave)
+            if review["status"] != "PASSED":
+                reason = review.get("reason", "Unknown gate failure")
+                return OrchestratorResult(
+                    status="FAILED",
+                    phase_id=phase_id,
+                    wave_id=wave_id,
+                    reason=reason,
+                    waves_completed=waves_completed,
+                    failure_packet=self._build_failure_packet(reason),
+                )
+
+            waves_completed += 1
+
+            if not self._advance():
+                break
+
+        return OrchestratorResult(
+            status="SUCCESS",
+            phase_id=self.plan.phases[0].id if self.plan.phases else "",
+            waves_completed=waves_completed,
+        )
