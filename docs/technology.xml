@@ -1,0 +1,6 @@
+<Technology>
+  <RuntimeStack>Python 3.9+, React 18, TypeScript</RuntimeStack>
+  <Dependencies>Standard Library only (backend), Vite, Tailwind CSS (frontend)</Dependencies>
+  <Constraints>No external heavy UI kits. No external HTTP clients (use urllib).</Constraints>
+  <Toolchain>pytest, npm</Toolchain>
+</Technology>

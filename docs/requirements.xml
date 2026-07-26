@@ -1,0 +1,15 @@
+<Requirements>
+  <SystemGoal>Implement and orchestrate strict GRACE execution model.</SystemGoal>
+  <UseCases>
+    <UseCase id="UC-EXEC-1">
+      <Description>Run orchestrator and generate code via LLM worker.</Description>
+    </UseCase>
+  </UseCases>
+  <Scope>
+    <InScope>Orchestrator core, CLI, API, Frontend.</InScope>
+    <OutOfScope>Deployment scripts, cloud infrastructure.</OutOfScope>
+  </Scope>
+  <Invariants>
+    <Invariant>All changes must be within AllowedWriteScope.</Invariant>
+  </Invariants>
+</Requirements>

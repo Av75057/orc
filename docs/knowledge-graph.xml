@@ -1,0 +1,13 @@
+<KnowledgeGraph>
+  <Modules>
+    <Module id="M-APP">
+      <Name>Application Entry</Name>
+      <Functions>
+        <Function id="F-MAIN">main</Function>
+      </Functions>
+    </Module>
+  </Modules>
+  <CrossLinks>
+    <Link source="UC-EXEC-1" target="M-APP" />
+  </CrossLinks>
+</KnowledgeGraph>
