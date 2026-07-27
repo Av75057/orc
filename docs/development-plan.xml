@@ -1,86 +1,103 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <DevelopmentPlan>
-  <Phase id="PHASE-USER-MGR">
-    <Goal>Build a modular User Manager application with auth and logging.</Goal>
+  <Phase id="PHASE-ECOM">
+    <Goal>Build an E-commerce Order Processing System with parallel features and integration.</Goal>
 
     <!-- WAVE 1: Foundation -->
-    <Wave id="WAVE-DB-1">
-      <Goal>Create the User model and a simple in-memory database to store users. Must include password hashing simulation.</Goal>
-      <ModuleRef id="M-DB" />
+    <Wave id="WAVE-MODELS-1">
+      <Goal>Create data models (Product, Order) and a simple in-memory storage engine.</Goal>
+      <ModuleRef id="M-MODELS" />
       <AllowedWriteScope>
-        <File>src/database.py</File>
-        <File>tests/test_database.py</File>
+        <File>src/models.py</File>
+        <File>src/storage.py</File>
+        <File>tests/test_storage.py</File>
       </AllowedWriteScope>
-      <FrozenScope>
-        <File>src/grace/</File>
-        <File>frontend/</File>
-        <File>docs/</File>
-      </FrozenScope>
       <Verification>
-        <Command>python -m pytest tests/test_database.py -v</Command>
+        <Command>python -m pytest tests/test_storage.py -v</Command>
       </Verification>
       <AcceptanceCriteria>
-        <Criterion>database.py contains a User dataclass/class and a Database class.</Criterion>
-        <Criterion>Database supports add_user and get_user methods.</Criterion>
-        <Criterion>Tests pass successfully.</Criterion>
+        <Criterion>models.py defines Product and Order dataclasses.</Criterion>
+        <Criterion>storage.py provides Storage class with save and get methods.</Criterion>
       </AcceptanceCriteria>
     </Wave>
 
     <!-- WAVE 2: Parallel Multi-Agent Execution -->
-    <Wave id="WAVE-FEATURES-1">
-      <Goal>Develop authentication and logging modules in parallel.</Goal>
+    <Wave id="WAVE-FEATURES-2">
+      <Goal>Develop discount calculator and notification modules in parallel.</Goal>
       
-      <Slice id="SLICE-AUTH">
-        <Goal>Create auth.py providing register and login functions using the database from WAVE-DB-1.</Goal>
-        <ModuleRef id="M-AUTH" />
+      <Slice id="SLICE-DISCOUNT">
+        <Goal>Create discount.py providing calculate_discount(product, quantity).</Goal>
+        <ModuleRef id="M-DISCOUNT" />
         <AllowedWriteScope>
-          <File>src/auth.py</File>
-          <File>tests/test_auth.py</File>
+          <File>src/discount.py</File>
+          <File>tests/test_discount.py</File>
         </AllowedWriteScope>
         <Verification>
-          <Command>python -m pytest tests/test_auth.py -v</Command>
+          <Command>python -m pytest tests/test_discount.py -v</Command>
         </Verification>
         <AcceptanceCriteria>
-          <Criterion>auth.py imports database.py.</Criterion>
-          <Criterion>register function creates a user, login validates credentials.</Criterion>
+          <Criterion>discount.py calculates bulk purchase discounts correctly.</Criterion>
         </AcceptanceCriteria>
       </Slice>
 
-      <Slice id="SLICE-LOGGER">
-        <Goal>Create logger.py providing a simple audit logger that writes to stdout/memory.</Goal>
-        <ModuleRef id="M-LOGGER" />
+      <Slice id="SLICE-NOTIFY">
+        <Goal>Create notifier.py providing a Notifier class with send_email(order_id) method.</Goal>
+        <ModuleRef id="M-NOTIFY" />
         <AllowedWriteScope>
-          <File>src/logger.py</File>
-          <File>tests/test_logger.py</File>
+          <File>src/notifier.py</File>
+          <File>tests/test_notifier.py</File>
         </AllowedWriteScope>
         <Verification>
-          <Command>python -m pytest tests/test_logger.py -v</Command>
+          <Command>python -m pytest tests/test_notifier.py -v</Command>
         </Verification>
         <AcceptanceCriteria>
-          <Criterion>logger.py provides a Logger class with a log(message) method.</Criterion>
+          <Criterion>notifier.py outputs a simulated email to stdout.</Criterion>
         </AcceptanceCriteria>
       </Slice>
     </Wave>
 
-    <!-- WAVE 3: Integration -->
-    <Wave id="WAVE-INTEGRATION-1">
-      <Goal>Integrate all modules into a main application entry point and write an end-to-end test.</Goal>
-      <ModuleRef id="M-APP" />
+    <!-- WAVE 3: Sequential Feature (Uses Context Injection from WAVE 1) -->
+    <Wave id="WAVE-CART-3">
+      <Goal>Create the ShoppingCart class that uses Storage and Models.</Goal>
+      <ModuleRef id="M-CART" />
       <AllowedWriteScope>
-        <File>src/app.py</File>
-        <File>tests/test_app.py</File>
+        <File>src/cart.py</File>
+        <File>tests/test_cart.py</File>
       </AllowedWriteScope>
       <FrozenScope>
-        <File>src/database.py</File>
-        <File>src/auth.py</File>
-        <File>src/logger.py</File>
+        <File>src/models.py</File>
+        <File>src/storage.py</File>
       </FrozenScope>
       <Verification>
-        <Command>python -m pytest tests/test_app.py -v</Command>
+        <Command>python -m pytest tests/test_cart.py -v</Command>
       </Verification>
       <AcceptanceCriteria>
-        <Criterion>app.py imports database, auth, and logger.</Criterion>
-        <Criterion>End-to-end test registers a user, logs them in, and checks audit logs.</Criterion>
+        <Criterion>cart.py imports Storage and Product.</Criterion>
+        <Criterion>ShoppingCart has add_item and checkout methods.</Criterion>
+      </AcceptanceCriteria>
+    </Wave>
+
+    <!-- WAVE 4: Final Integration (Uses Context Injection from ALL waves) -->
+    <Wave id="WAVE-INTEGRATION-4">
+      <Goal>Integrate all modules into CheckoutService and write end-to-end tests.</Goal>
+      <ModuleRef id="M-CHECKOUT" />
+      <AllowedWriteScope>
+        <File>src/checkout.py</File>
+        <File>tests/test_checkout.py</File>
+      </AllowedWriteScope>
+      <FrozenScope>
+        <File>src/models.py</File>
+        <File>src/storage.py</File>
+        <File>src/discount.py</File>
+        <File>src/notifier.py</File>
+        <File>src/cart.py</File>
+      </FrozenScope>
+      <Verification>
+        <Command>python -m pytest tests/test_checkout.py -v</Command>
+      </Verification>
+      <AcceptanceCriteria>
+        <Criterion>checkout.py imports ShoppingCart, calculate_discount, and Notifier.</Criterion>
+        <Criterion>End-to-end test: adds items, applies discount, processes checkout, sends notification.</Criterion>
       </AcceptanceCriteria>
       <DeferredWork>
         <Item>Add REST API endpoints in a future phase.</Item>

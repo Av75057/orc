@@ -21,17 +21,25 @@ class LLMWorker(GraceWorker):
         return f"LLMWorker({self.model})"
 
     def _section_lines(self, text: str, header: str) -> List[str]:
+        """
+        Extract lines belonging to a section identified by a header like
+        '## Allowed Write Scope' or '## Slice SLICE-A: Allowed Write Scope'.
+        Matches any line starting with '##' that contains the header text.
+        """
         lines = text.splitlines()
         result = []
         in_section = False
         for line in lines:
-            if line.strip().startswith(header):
+            stripped = line.strip()
+            # Detect section start: any '##' line containing the header text
+            if stripped.startswith("##") and header.lstrip("# ").strip() in stripped:
                 in_section = True
                 continue
-            if in_section and line.startswith("##"):
+            # End of section: next '##' header (not indented)
+            if in_section and stripped.startswith("##"):
                 break
-            if in_section and line.strip():
-                result.append(line.strip())
+            if in_section and stripped:
+                result.append(stripped)
         return result
 
     def _parse_scope(self, text: str, header: str) -> List[str]:
@@ -49,20 +57,25 @@ class LLMWorker(GraceWorker):
         allowed = self._parse_scope(packet, "## Allowed Write Scope")
 
         if not allowed:
-            self._log("no_allowed_files", "skip",
-                      reason="No allowed files found in packet")
-            return True
+            self._log("no_allowed_files", "fail",
+                      reason="No allowed files found in packet. Check section header formatting.")
+            return False
 
         system_prompt = (
-            "You are a code generation agent. Output ONLY code files in this format:"
+            "You are a strict code generation agent. Output ONLY code files in this format:"
             "\n===FILE:path/to/file.py==="
             "\n<complete code here>"
             "\n===END==="
             "\n"
-            "\nIMPORTANT: If the user message contains an '## Existing Context' section,"
-            "\n use that code to understand existing interfaces. DO NOT modify those files."
-            "\n Generate code that is compatible with the existing interfaces shown."
-            "\nWrite complete, working code. Use exact file paths from Allowed Write Scope."
+            "\nCRITICAL RULES:"
+            "\n1. If the user message has an '## Existing Context' section, that code contains"
+            "\n   REAL interfaces (classes, methods, function signatures). You MUST use the exact"
+            "\n   names, signatures, and import paths shown there. NEVER invent new methods or"
+            "\n   classes that conflict with existing ones. NEVER modify frozen files."
+            "\n2. Generate code compatible with existing interfaces. Check import names carefully."
+            "\n3. For integration tests, mock or stub external dependencies if they don't exist yet."
+            "\n4. Write complete, working code with proper imports."
+            "\n5. Use the EXACT file paths from 'Allowed Write Scope' section."
         )
 
         body = {
