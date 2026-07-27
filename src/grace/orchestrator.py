@@ -5,6 +5,7 @@ from src.grace.models import DevelopmentPlan, Wave, Phase
 from src.grace.artifact_loader import load_development_plan
 from src.grace.controller import generate_controller_packet
 from src.grace.reviewer import review_wave
+from src.grace.worker import GraceWorker, StubWorker
 
 
 @dataclass
@@ -19,8 +20,9 @@ class OrchestratorResult:
 
 
 class GraceOrchestrator:
-    def __init__(self, plan: DevelopmentPlan):
+    def __init__(self, plan: DevelopmentPlan, worker: Optional[GraceWorker] = None):
         self.plan = plan
+        self.worker = worker or StubWorker()
         self._phase_idx: int = 0
         self._wave_idx: int = 0
 
@@ -62,9 +64,6 @@ class GraceOrchestrator:
         self._wave_idx = 0
         return False
 
-    def execute_worker_task(self, packet: str) -> bool:
-        return True
-
     def _build_failure_packet(self, reason: str) -> str:
         wave = self.current_wave
         phase = self.current_phase
@@ -97,7 +96,7 @@ Orchestrator execution stopped. Manual intervention required.
 
             packet = generate_controller_packet(self.plan, wave_id)
 
-            worker_ok = self.execute_worker_task(packet)
+            worker_ok = self.worker.execute(packet)
             if not worker_ok:
                 return OrchestratorResult(
                     status="FAILED",
@@ -136,3 +135,4 @@ Orchestrator execution stopped. Manual intervention required.
             waves_completed=waves_completed,
             completed_wave_ids=completed_ids,
         )
+
