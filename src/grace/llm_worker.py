@@ -70,7 +70,7 @@ class LLMWorker(GraceWorker):
         )
 
     def _call_api(self, messages: list) -> dict:
-        body = {"model": self.model, "messages": messages, "temperature": 0.2, "max_tokens": 4096}
+        body = {"model": self.model, "messages": messages, "temperature": 0.2, "max_tokens": 8192}
         for attempt in range(MAX_API_RETRIES):
             try:
                 req = urllib.request.Request(
@@ -188,6 +188,7 @@ class LLMWorker(GraceWorker):
 
         self._log("execution_finished", "ok")
         return True
+
 
 
 
