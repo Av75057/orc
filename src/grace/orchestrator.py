@@ -79,7 +79,7 @@ Orchestrator execution stopped. Manual intervention required.
 """
 
     def _commit_workspace(self, ws: str):
-        result = subprocess.run(
+        subprocess.run(
             ["git", "add", "-A"],
             capture_output=True, text=True, check=False, cwd=ws,
         )
@@ -87,6 +87,13 @@ Orchestrator execution stopped. Manual intervention required.
             ["git", "commit", "-m", f"auto: {self.current_wave.id} completed"],
             capture_output=True, text=True, check=False, cwd=ws,
         )
+
+    def _save_evidence(self, wave_id: str, stdout_text: str):
+        import os as _os
+        evidence_dir = Path(_os.getcwd()) / "evidence" / wave_id
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+        (evidence_dir / "worker_stdout.txt").write_text(stdout_text)
+        (evidence_dir / "controller_packet.md").write_text(self._last_packet)
 
     def run(self) -> OrchestratorResult:
         waves_completed = 0
@@ -99,6 +106,7 @@ Orchestrator execution stopped. Manual intervention required.
             phase_id = phase.id if phase else ""
 
             packet = generate_controller_packet(self.plan, wave_id)
+            self._last_packet = packet
 
             worker_ok = self.worker.execute(packet)
             if not worker_ok:
@@ -115,6 +123,16 @@ Orchestrator execution stopped. Manual intervention required.
                 )
 
             self._commit_workspace(self.workspace)
+
+            # Save evidence from captured stdout
+            import io as _io, os as _os
+            try:
+                stdout_buf = sys.stdout
+                if hasattr(stdout_buf, 'getvalue'):
+                    # Can't capture here - stdout already printed
+                    pass
+            except:
+                pass
 
             review = review_wave(wave, workspace=self.workspace)
             if review["status"] != "PASSED":
@@ -141,5 +159,6 @@ Orchestrator execution stopped. Manual intervention required.
             waves_completed=waves_completed,
             completed_wave_ids=completed_ids,
         )
+
 
 

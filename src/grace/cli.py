@@ -1,5 +1,6 @@
 import argparse
 import json
+import io
 import os
 import sys
 from pathlib import Path
@@ -56,7 +57,26 @@ def main(argv=None) -> int:
 
     worker = _build_worker(workspace)
     orchestrator = GraceOrchestrator(plan, worker=worker, workspace=workspace)
-    result = orchestrator.run()
+
+    # Capture stdout for evidence
+    captured = io.StringIO()
+    old_stdout = sys.stdout
+    sys.stdout = captured
+
+    try:
+        result = orchestrator.run()
+    finally:
+        sys.stdout = old_stdout
+
+    # Write captured stdout back to real stdout
+    stdout_text = captured.getvalue()
+    sys.stdout.write(stdout_text)
+
+    # Save to evidence directory
+    wave_id = result.wave_id or "T0"
+    evidence_dir = Path("evidence") / wave_id
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    (evidence_dir / "worker_stdout.txt").write_text(stdout_text)
 
     state = {
         "completed_waves": result.completed_wave_ids,
