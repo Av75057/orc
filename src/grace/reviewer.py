@@ -14,8 +14,22 @@ ORCHESTRATOR_FILES = [
 ]
 
 
+def _ensure_git_repo(workspace: str):
+    git_dir = os.path.join(workspace, ".git")
+    if not os.path.exists(git_dir):
+        print(f"[REVIEWER] Git repository not found in {workspace}. Initializing...")
+        subprocess.run(["git", "init"], cwd=workspace, capture_output=True)
+        subprocess.run(["git", "add", "-A"], cwd=workspace, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Initial auto-commit by GRACE Reviewer", "--allow-empty"],
+            cwd=workspace, capture_output=True,
+        )
+        print("[REVIEWER] Git initialized and initial snapshot created.")
+
+
 def get_changed_files(workspace: Optional[str] = None) -> List[str]:
     cwd = workspace or os.getcwd()
+    _ensure_git_repo(cwd)
     try:
         result = subprocess.run(
             ["git", "status", "--porcelain"],
@@ -97,5 +111,4 @@ def review_wave(wave: Wave, workspace: Optional[str] = None) -> Dict[str, Any]:
         "violations": [],
         "verification": verif,
     }
-
 
