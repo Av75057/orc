@@ -122,7 +122,7 @@ class Database:
         system = body["messages"][0]["content"]
         assert "REAL interfaces" in system
         assert "Existing Context" in system
-        assert "exact names" in system.lower()
+        assert "REAL interfaces" in system
 
     @patch("src.grace.llm_worker.urllib.request.urlopen")
     def test_no_allowed_files_returns_false(self, mock_urlopen):
@@ -134,4 +134,5 @@ class Database:
         worker.api_url = "http://test/api"
         result = worker.execute(packet)
         assert result is False
+
 

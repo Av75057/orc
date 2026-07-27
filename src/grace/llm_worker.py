@@ -22,9 +22,9 @@ class LLMWorker(GraceWorker):
 
     def _section_lines(self, text: str, header: str) -> List[str]:
         """
-        Extract lines belonging to a section identified by a header like
-        '## Allowed Write Scope' or '## Slice SLICE-A: Allowed Write Scope'.
-        Matches any line starting with '##' that contains the header text.
+        Extract lines belonging to ALL occurrences of a section identified by a
+        header like '## Allowed Write Scope' or '## Slice SLICE-A: Allowed Write Scope'.
+        Scans the entire text and collects lines from every matching section.
         """
         lines = text.splitlines()
         result = []
@@ -35,9 +35,13 @@ class LLMWorker(GraceWorker):
             if stripped.startswith("##") and header.lstrip("# ").strip() in stripped:
                 in_section = True
                 continue
-            # End of section: next '##' header (not indented)
+            # End of section: next '##' header — restart scanning for next match
             if in_section and stripped.startswith("##"):
-                break
+                in_section = False
+                # Check if this new header also matches (e.g. second Allowed Write Scope)
+                if header.lstrip("# ").strip() in stripped:
+                    in_section = True
+                    continue
             if in_section and stripped:
                 result.append(stripped)
         return result
@@ -158,4 +162,5 @@ class LLMWorker(GraceWorker):
         if len(matches) == len(allowed):
             return [(allowed[i], code.strip()) for i, code in enumerate(matches)]
         return []
+
 
