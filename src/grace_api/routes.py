@@ -162,6 +162,8 @@ class GraceAPI:
         full = self._abs("evidence", rel_path)
         if not str(full).startswith(str(self._abs("evidence"))):
             return _json_response({"error": "Path traversal not allowed"}, 403)
+        if full.is_dir():
+            return _json_response({"error": "Cannot read a directory"}, 400)
         return _read_file_or_404(full)
 
     def handle_run(self, body: Optional[bytes]) -> tuple:
@@ -244,6 +246,7 @@ class GraceAPI:
         if method == "DELETE" and path == "/api/state":
             return self._delete_state()
         return _json_response({"error": "Not found"}, 404)
+
 
 
 
