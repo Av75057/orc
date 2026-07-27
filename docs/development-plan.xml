@@ -64,7 +64,7 @@
       <Goal>Develop Thermostat and LightBulb that subscribe to events and change state.</Goal>
       
       <Slice id="SLICE-THERMO">
-        <Goal>Create thermostat.py. Subscribes to 'temp_change'. If temp < 20, turns on heating (is_on=True).</Goal>
+        <Goal>Create thermostat.py. Subscribes to 'temp_change'. If temp is less than 20, turns on heating (is_on=True).</Goal>
         <ModuleRef id="M-THERMO" />
         <AllowedWriteScope>
           <File>src/thermostat.py</File>
@@ -75,7 +75,7 @@
         </Verification>
         <AcceptanceCriteria>
           <Criterion>Thermostat subscribes to 'temp_change' on initialization.</Criterion>
-          <Criterion>If event data temp < 20, device is_on becomes True.</Criterion>
+          <Criterion>If event data temp is less than 20, device is_on becomes True.</Criterion>
         </AcceptanceCriteria>
       </Slice>
 
