@@ -1,3 +1,33 @@
+"""
+START_MODULE_CONTRACT: M-REVIEWER
+  purpose: Проверяет соответствие результатов worker'а packet'у.
+           Scope compliance, verification status, git snapshot.
+  owns:
+    - src/grace/reviewer.py
+  inputs:
+    - ControllerPacket
+    - WorkerResult
+    - git status
+  outputs:
+    - ReviewResult (status, violations, summary)
+  dependencies:
+    - M-MODELS (ControllerPacket, WorkerResult, ReviewResult)
+    - git (subprocess)
+  side_effects:
+    - Reads git status
+    - Writes structured JSON logs
+  invariants:
+    - Scope violation = hard failure
+    - Verification failure = hard failure
+    - Out-of-scope changes = hard failure
+  failure_policy:
+    - Формирует failure packet с reason
+    - Отделяет hard failure от acceptable follow-up
+  non_goals:
+    - Не исправляет код
+    - Не запускает verification повторно
+END_MODULE_CONTRACT: M-REVIEWER
+
 import os
 import subprocess
 from typing import List, Dict, Any, Optional
@@ -125,4 +155,5 @@ def review_wave(wave: Wave, workspace: Optional[str] = None) -> Dict[str, Any]:
         "violations": [],
         "verification": verif,
     }
+
 

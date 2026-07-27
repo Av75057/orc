@@ -1,3 +1,30 @@
+"""
+START_MODULE_CONTRACT: M-CONTROLLER
+  purpose: Генерация controller packets из development-plan.xml.
+           Фиксирует scope, verification, invariants для каждой wave.
+  owns:
+    - src/grace/controller.py
+  inputs:
+    - DevelopmentPlan (parsed)
+    - wave_id, phase_id
+  outputs:
+    - ControllerPacket (по каноническому shape)
+  dependencies:
+    - M-ARTIFACT-LOADER
+    - M-MODELS (ControllerPacket dataclass)
+  side_effects:
+    - Reads frozen-scope files for context injection
+  invariants:
+    - Packet содержит все MUST-поля
+    - Write scope не пересекается между waves
+    - Frozen scope покрывает все файлы вне write scope
+  failure_policy:
+    - ValueError при отсутствии wave в plan
+  non_goals:
+    - Не исполняет packet
+    - Не проверяет результаты
+END_MODULE_CONTRACT: M-CONTROLLER
+
 import os
 from pathlib import Path
 from typing import Optional
@@ -99,4 +126,5 @@ def generate_controller_packet(
 - If verification fails after 2-3 attempts, stop and return a Failure Packet.
 - If the Goal conflicts with Must Preserve invariants, stop and request a new Controller Packet.
 """
+
 

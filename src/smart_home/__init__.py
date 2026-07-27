@@ -1,1 +1,1 @@
-
+"""Smart Home Automation System — event-driven, stdlib only."""

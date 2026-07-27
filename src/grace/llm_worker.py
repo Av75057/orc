@@ -1,3 +1,38 @@
+"""
+START_MODULE_CONTRACT: M-WORKER
+  purpose: Executes controller packet via LLM (OpenAI API).
+           Generates code, writes files in allowed scope,
+           runs verification commands.
+  owns:
+    - src/grace/llm_worker.py
+  inputs:
+    - ControllerPacket
+    - OpenAI API key
+  outputs:
+    - WorkerResult (status, files_written, verification_output)
+  dependencies:
+    - M-MODELS (ControllerPacket, WorkerResult)
+    - OpenAI API (external)
+  side_effects:
+    - Writes files in allowed write scope
+    - Calls OpenAI API
+    - Runs verification commands (subprocess)
+    - Writes structured JSON logs
+    - Saves evidence in evidence/ directory
+  invariants:
+    - Files written ONLY in allowed write scope
+    - Scope violation → file not written, error
+    - Verification run after write
+  failure_policy:
+    - API error → retry with exponential backoff (up to 5 attempts)
+    - Scope violation → error, file not written
+    - Verification failure → status VERIFICATION_FAILED
+  non_goals:
+    - Does not modify shared artifacts
+    - Does not extend write scope
+    - Does not make architectural decisions
+END_MODULE_CONTRACT: M-WORKER
+
 import json
 import os
 import re
@@ -213,6 +248,7 @@ class LLMWorker(GraceWorker):
 
         self._log("execution_finished", "ok")
         return True
+
 
 
 

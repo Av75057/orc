@@ -1,3 +1,38 @@
+"""
+START_MODULE_CONTRACT: M-ORCHESTRATOR
+  purpose: Drive phase/wave execution loop. Последовательно обходит
+           waves из development-plan.xml, генерирует controller packets,
+           вызывает worker, проверяет через reviewer, коммитит.
+  owns:
+    - src/grace/orchestrator.py
+  inputs:
+    - DevelopmentPlan (parsed from XML)
+    - GraceWorker (implementation)
+    - workspace path
+  outputs:
+    - OrchestratorResult (per wave: status, evidence, review)
+  dependencies:
+    - M-CONTROLLER (packet generation)
+    - M-REVIEWER (gate checking)
+    - M-WORKER (code execution)
+    - M-ARTIFACT-LOADER (plan parsing)
+  side_effects:
+    - git commit per wave
+    - evidence/ directory writes
+    - structured JSON logs
+  invariants:
+    - Wave order strictly sequential within phase
+    - Wave not skipped on failure
+    - Out-of-scope files not modified
+  failure_policy:
+    - Build failure packet, stop execution
+    - Repair loop up to 3 attempts
+  non_goals:
+    - Does not generate code
+    - Does not modify shared artifacts
+    - Does not make architectural decisions
+END_MODULE_CONTRACT: M-ORCHESTRATOR
+
 import os
 import subprocess
 from typing import Optional, Dict, Any, List
@@ -197,6 +232,7 @@ Orchestrator execution stopped. Manual intervention required.
             waves_completed=waves_completed,
             completed_wave_ids=completed_ids,
         )
+
 
 
 
