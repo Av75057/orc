@@ -27,6 +27,7 @@ START_MODULE_CONTRACT: M-REVIEWER
     - Не исправляет код
     - Не запускает verification повторно
 END_MODULE_CONTRACT: M-REVIEWER
+"""
 
 import os
 import subprocess
@@ -155,5 +156,6 @@ def review_wave(wave: Wave, workspace: Optional[str] = None) -> Dict[str, Any]:
         "violations": [],
         "verification": verif,
     }
+
 
 

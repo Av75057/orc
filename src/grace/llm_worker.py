@@ -32,6 +32,7 @@ START_MODULE_CONTRACT: M-WORKER
     - Does not extend write scope
     - Does not make architectural decisions
 END_MODULE_CONTRACT: M-WORKER
+"""
 
 import json
 import os
@@ -248,6 +249,7 @@ class LLMWorker(GraceWorker):
 
         self._log("execution_finished", "ok")
         return True
+
 
 
 

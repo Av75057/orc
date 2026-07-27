@@ -32,6 +32,7 @@ START_MODULE_CONTRACT: M-ORCHESTRATOR
     - Does not modify shared artifacts
     - Does not make architectural decisions
 END_MODULE_CONTRACT: M-ORCHESTRATOR
+"""
 
 import os
 import subprocess
@@ -232,6 +233,7 @@ Orchestrator execution stopped. Manual intervention required.
             waves_completed=waves_completed,
             completed_wave_ids=completed_ids,
         )
+
 
 
 
