@@ -101,49 +101,43 @@ class LLMWorker(GraceWorker):
 
     def _extract_files_from_text(self, output: str) -> list:
         result = []
-        # Pattern 1: ===FILE:path=== code ===END===
-        p1 = re.compile(r'===FILE:\s*([^\s=]+)\s*===\s*
-(.*?)===END===', re.DOTALL)
+        # P1: ===FILE:path=== code ===END===
+        p1 = re.compile(r'''===FILE:\s*(.+?)\s*===\s*
+(.*?)===END===''', re.DOTALL)
         for filepath, code in p1.findall(output):
-            result.append((filepath.strip(), code.strip()))
+            filepath = filepath.strip()
+            if filepath.endswith(('.py', '.md', '.txt', '.xml', '.json', '.yml', '.yaml')):
+                result.append((filepath, code.strip()))
         if result:
             return result
-        # Pattern 2: ===FILE:path=== followed by ```python ... ```
-        p2 = re.compile(r'===FILE:\s*([^\s=]+)\s*===.*?
+        # P2: ===FILE:path=== followed by ```python ... ```
+        p2 = re.compile(r'''===FILE:\s*(.+?)\s*===.*?
 ```(?:python)?\s*
 (.*?)
-```', re.DOTALL)
+```''', re.DOTALL)
         for filepath, code in p2.findall(output):
-            result.append((filepath.strip(), code.strip()))
-        if result:
-            return result
-        # Pattern 3: filename in header followed by code block
-        p3 = re.compile(r'#+\s*([\w/.]+\.py)\s*
-```(?:python)?\s*
-(.*?)
-```', re.DOTALL)
-        for filepath, code in p3.findall(output):
-            result.append((filepath.strip(), code.strip()))
-        if result:
-            return result
-        # Pattern 4: Any ```python block with file path comment on first line
-        p4 = re.compile(r'```(?:python)?\s*
-#\s*([\w/.]+\.py)\s*
-(.*?)
-```', re.DOTALL)
-        for filepath, code in p4.findall(output):
-            result.append((filepath.strip(), code.strip()))
+            filepath = filepath.strip()
+            if filepath.endswith(('.py', '.md', '.txt')):
+                result.append((filepath, code.strip()))
         return result
 
     def _parse_llm_response(self, raw: str) -> dict:
         text = raw.strip()
-        m = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', text, re.DOTALL)
+        # Strip markdown json wrappers
+        m = re.search(r'''```(?:json)?\s*
+([\s\S]*?)
+```''', text, re.DOTALL)
         if m:
             text = m.group(1).strip()
-        try:
-            return json.loads(text)
-        except (json.JSONDecodeError, ValueError):
-            pass
+        # Find { and }
+        start = text.find('{')
+        end = text.rfind('}')
+        if start != -1 and end != -1 and end > start:
+            try:
+                return json.loads(text[start:end + 1])
+            except (json.JSONDecodeError, ValueError):
+                pass
+        # Fallback: ===FILE=== format
         files = self._extract_files_from_text(raw)
         if files:
             return {"files_to_write": [{"path": p, "content": c} for p, c in files], "logs": []}
@@ -183,7 +177,7 @@ class LLMWorker(GraceWorker):
         except RuntimeError as e:
             msg = str(e)
             if "LLM_API_HTTP" in msg or "LLM_API_TIMEOUT" in msg:
-                raise  # Re-raise for orchestrator to handle with API retry
+                raise
             self._log("llm_api_call_failed", "fail", reason=msg)
             return False
 
@@ -216,9 +210,4 @@ class LLMWorker(GraceWorker):
 
         self._log("execution_finished", "ok")
         return True
-
-
-
-
-
 
