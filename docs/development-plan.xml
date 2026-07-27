@@ -22,7 +22,7 @@
         <File>docs/*</File>
       </FrozenScope>
       <Verification>
-        <Command>python -m pytest tests/test_event_bus.py -v</Command>
+        <Command>PYTHONPATH=src python -m pytest tests/test_event_bus.py -v</Command>
       </Verification>
       <AcceptanceCriteria>
         <Criterion>Event — frozen dataclass with topic and payload.</Criterion>
@@ -49,7 +49,7 @@
         <File>docs/*</File>
       </FrozenScope>
       <Verification>
-        <Command>python -m pytest tests/test_sensors.py -v</Command>
+        <Command>PYTHONPATH=src python -m pytest tests/test_sensors.py -v</Command>
       </Verification>
       <AcceptanceCriteria>
         <Criterion>TemperatureSensor.read(value) publishes Event("sensor.temperature", value).</Criterion>
@@ -74,7 +74,7 @@
         <File>docs/*</File>
       </FrozenScope>
       <Verification>
-        <Command>python -m pytest tests/test_actuators.py -v</Command>
+        <Command>PYTHONPATH=src python -m pytest tests/test_actuators.py -v</Command>
       </Verification>
       <AcceptanceCriteria>
         <Criterion>Thermostat subscribed to sensor.temperature.</Criterion>
@@ -101,8 +101,8 @@
         <File>docs/*</File>
       </FrozenScope>
       <Verification>
-        <Command>python -m pytest tests/test_integration.py tests/test_main.py -v</Command>
-        <Command>python -m smart_home.main</Command>
+        <Command>PYTHONPATH=src python -m pytest tests/test_integration.py tests/test_main.py -v</Command>
+        <Command>PYTHONPATH=src python -m smart_home.main</Command>
       </Verification>
       <AcceptanceCriteria>
         <Criterion>SmartHomeController creates EventBus and registers devices.</Criterion>
@@ -124,7 +124,7 @@
         <File>docs/*</File>
       </FrozenScope>
       <Verification>
-        <Command>python -m pytest tests/ -v</Command>
+        <Command>PYTHONPATH=src python -m pytest tests/ -v</Command>
       </Verification>
       <AcceptanceCriteria>
         <Criterion>All tests pass, exit code 0.</Criterion>
