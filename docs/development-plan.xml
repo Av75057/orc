@@ -1,34 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <DevelopmentPlan>
-  <Phase id="PHASE-1">
-    <Goal>Implement artifact-driven baseline for GRACE Orchestrator</Goal>
-    <Wave id="WAVE-1">
-      <Goal>Implement core data models and XML parser for development-plan.xml</Goal>
-      <Modules>
-        <Module>M-ARTIFACTS</Module>
-        <Module>M-CORE</Module>
-      </Modules>
+  <Phase id="PHASE-CALC">
+    <Goal>Implement and test a basic calculator module.</Goal>
+
+    <Wave id="WAVE-CALC-1">
+      <Goal>Create core arithmetic functions (add, subtract, multiply, divide) and unit tests.</Goal>
+
+      <ModuleRef id="M-CALC" />
+
       <AllowedWriteScope>
-        <File>src/grace/models.py</File>
-        <File>src/grace/artifact_loader.py</File>
-        <File>tests/test_artifact_loader.py</File>
-        <File>docs/development-plan.xml</File>
+        <File>src/calculator.py</File>
+        <File>tests/test_calculator.py</File>
       </AllowedWriteScope>
+
       <FrozenScope>
-        <File>src/grace/controller.py</File>
-        <File>src/grace/reviewer.py</File>
-        <File>src/grace/orchestrator.py</File>
-        <File>infra/*</File>
-        <File>frontend/*</File>
+        <File>src/grace/</File>
+        <File>src/grace_api/</File>
+        <File>frontend/</File>
+        <File>docs/</File>
+        <File>infra/</File>
       </FrozenScope>
-      <MustPreserve>
-        <Item>Python 3.9+ compatibility</Item>
-        <Item>Standard library only (xml.etree.ElementTree, dataclasses)</Item>
-        <Item>No side effects on import</Item>
-      </MustPreserve>
+
       <Verification>
-        <Command>python -m pytest tests/test_artifact_loader.py -v</Command>
+        <Command>python -m pytest tests/test_calculator.py -v</Command>
       </Verification>
+
+      <AcceptanceCriteria>
+        <Criterion>Module src/calculator.py exists and contains add, subtract, multiply, divide functions.</Criterion>
+        <Criterion>Division by zero raises a ValueError.</Criterion>
+        <Criterion>All pytest tests pass successfully.</Criterion>
+        <Criterion>No files outside AllowedWriteScope were modified.</Criterion>
+      </AcceptanceCriteria>
+
+      <DeferredWork>
+        <Item>Add advanced operations (power, square root) in a future wave.</Item>
+        <Item>Add CLI interface for the calculator later.</Item>
+      </DeferredWork>
     </Wave>
   </Phase>
 </DevelopmentPlan>
