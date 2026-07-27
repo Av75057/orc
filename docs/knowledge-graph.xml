@@ -1,41 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<KnowledgeGraph id="KG-SMARTHOME" version="1.0" last_review="2026-07-27">
+<KnowledgeGraph id="KG-SMARTHOME" version="2.0" last_review="2026-07-28">
+
   <ModuleGraph>
+    <Module id="M-MODELS">
+      <Name>Models</Name>
+      <File>src/smart_home/models.py</File>
+      <Purpose>Shared data models: Event (frozen dataclass), Device (base class).</Purpose>
+      <Owns><File>src/smart_home/models.py</File></Owns>
+    </Module>
     <Module id="M-EVENTBUS">
       <Name>EventBus</Name>
       <File>src/smart_home/event_bus.py</File>
-      <Purpose>Central event bus. Publish/subscribe by topic. Synchronous delivery.</Purpose>
+      <Purpose>Central event bus. Publish/subscribe by topic. Synchronous delivery. Error isolation.</Purpose>
       <Owns><File>src/smart_home/event_bus.py</File><File>tests/test_event_bus.py</File></Owns>
+      <Dependencies><Dep ref="M-MODELS" /></Dependencies>
     </Module>
     <Module id="M-TEMPSENSOR">
       <Name>TemperatureSensor</Name>
       <File>src/smart_home/sensors.py</File>
-      <Purpose>Generates "sensor.temperature" events.</Purpose>
+      <Purpose>Generates "sensor.temperature" events with numeric value.</Purpose>
       <Owns><File>src/smart_home/sensors.py</File><File>tests/test_sensors.py</File></Owns>
+      <Dependencies><Dep ref="M-MODELS" /><Dep ref="M-EVENTBUS" /></Dependencies>
     </Module>
     <Module id="M-MOTIONSENSOR">
       <Name>MotionSensor</Name>
       <File>src/smart_home/sensors.py</File>
-      <Purpose>Generates "sensor.motion" events.</Purpose>
+      <Purpose>Generates "sensor.motion" events with boolean value.</Purpose>
       <Owns><File>src/smart_home/sensors.py</File><File>tests/test_sensors.py</File></Owns>
+      <Dependencies><Dep ref="M-MODELS" /><Dep ref="M-EVENTBUS" /></Dependencies>
     </Module>
     <Module id="M-THERMOSTAT">
       <Name>Thermostat</Name>
       <File>src/smart_home/actuators.py</File>
       <Purpose>Subscribes to temperature. Heater ON when temp < threshold.</Purpose>
       <Owns><File>src/smart_home/actuators.py</File><File>tests/test_actuators.py</File></Owns>
+      <Dependencies><Dep ref="M-MODELS" /><Dep ref="M-EVENTBUS" /></Dependencies>
     </Module>
     <Module id="M-LIGHTBULB">
       <Name>LightBulb</Name>
       <File>src/smart_home/actuators.py</File>
-      <Purpose>Subscribes to motion. Light ON when motion detected.</Purpose>
+      <Purpose>Subscribes to motion. Light ON when motion == True.</Purpose>
       <Owns><File>src/smart_home/actuators.py</File><File>tests/test_actuators.py</File></Owns>
+      <Dependencies><Dep ref="M-MODELS" /><Dep ref="M-EVENTBUS" /></Dependencies>
     </Module>
     <Module id="M-CONTROLLER-SH">
       <Name>SmartHomeController</Name>
       <File>src/smart_home/controller.py</File>
-      <Purpose>Creates EventBus, registers sensors/actuators, provides integration scenarios.</Purpose>
+      <Purpose>Creates EventBus, registers devices, provides integration scenarios.</Purpose>
       <Owns><File>src/smart_home/controller.py</File><File>tests/test_integration.py</File></Owns>
+      <Dependencies><Dep ref="M-MODELS" /><Dep ref="M-EVENTBUS" /><Dep ref="M-TEMPSENSOR" /><Dep ref="M-MOTIONSENSOR" /><Dep ref="M-THERMOSTAT" /><Dep ref="M-LIGHTBULB" /></Dependencies>
+    </Module>
+    <Module id="M-MAIN">
+      <Name>Main CLI</Name>
+      <File>src/smart_home/main.py</File>
+      <Purpose>CLI entrypoint. Creates controller, runs scenarios, outputs JSON.</Purpose>
+      <Owns><File>src/smart_home/main.py</File><File>tests/test_main.py</File></Owns>
+      <Dependencies><Dep ref="M-CONTROLLER-SH" /></Dependencies>
     </Module>
   </ModuleGraph>
+
 </KnowledgeGraph>

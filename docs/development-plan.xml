@@ -1,150 +1,139 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DevelopmentPlan>
-  <Phase id="PHASE-SMARTHOME">
-    <Goal>Build an Event-Driven Smart Home Automation System.</Goal>
+<DevelopmentPlan id="PLAN-SMARTHOME" version="2.0" last_review="2026-07-28">
 
-    <!-- WAVE 1: Event Bus & Models -->
+  <Phase id="PHASE-SMARTHOME">
+    <Goal>Implement event-driven Smart Home Automation System.</Goal>
+
     <Wave id="WAVE-CORE-1">
-      <Goal>Create Device dataclass and an in-memory EventBus for pub/sub.</Goal>
-      <ModuleRef id="M-CORE" />
+      <Goal>Stabilize core: data models and event bus.</Goal>
+      <ModuleRef id="M-MODELS" />
+      <ModuleRef id="M-EVENTBUS" />
       <AllowedWriteScope>
-        <File>src/models.py</File>
-        <File>src/event_bus.py</File>
+        <File>src/smart_home/__init__.py</File>
+        <File>src/smart_home/models.py</File>
+        <File>src/smart_home/event_bus.py</File>
         <File>tests/test_event_bus.py</File>
       </AllowedWriteScope>
+      <FrozenScope>
+        <File>src/smart_home/sensors.py</File>
+        <File>src/smart_home/actuators.py</File>
+        <File>src/smart_home/controller.py</File>
+        <File>src/smart_home/main.py</File>
+        <File>docs/*</File>
+      </FrozenScope>
       <Verification>
         <Command>python -m pytest tests/test_event_bus.py -v</Command>
       </Verification>
       <AcceptanceCriteria>
-        <Criterion>models.py defines Device with id, name, and is_on boolean state.</Criterion>
-        <Criterion>event_bus.py defines EventBus with subscribe(event_name, callback) and publish(event_name, data).</Criterion>
-        <Criterion>publish triggers all subscribed callbacks with the data.</Criterion>
+        <Criterion>Event — frozen dataclass with topic and payload.</Criterion>
+        <Criterion>EventBus.publish delivers to all subscribers.</Criterion>
+        <Criterion>subscribe/unsubscribe work correctly.</Criterion>
+        <Criterion>Subscriber error does not interrupt delivery.</Criterion>
+        <Criterion>Duplicate subscribe is ignored.</Criterion>
       </AcceptanceCriteria>
+      <DeferredWork><Item>Async delivery — deferred</Item></DeferredWork>
     </Wave>
 
-    <!-- WAVE 2: Parallel Sensors (Publishers) -->
     <Wave id="WAVE-SENSORS-2">
-      <Goal>Develop TemperatureSensor and MotionSensor that publish events to EventBus.</Goal>
-      
-      <Slice id="SLICE-TEMP">
-        <Goal>Create temp_sensor.py with TemperatureSensor class. It reads temp and publishes 'temp_change'.</Goal>
-        <ModuleRef id="M-TEMP" />
-        <AllowedWriteScope>
-          <File>src/temp_sensor.py</File>
-          <File>tests/test_temp_sensor.py</File>
-        </AllowedWriteScope>
-        <Verification>
-          <Command>python -m pytest tests/test_temp_sensor.py -v</Command>
-        </Verification>
-        <AcceptanceCriteria>
-          <Criterion>TemperatureSensor takes EventBus in constructor.</Criterion>
-          <Criterion>read(temp) method publishes 'temp_change' event with temp value.</Criterion>
-        </AcceptanceCriteria>
-      </Slice>
-
-      <Slice id="SLICE-MOTION">
-        <Goal>Create motion_sensor.py with MotionSensor class. It detects motion and publishes 'motion_detected'.</Goal>
-        <ModuleRef id="M-MOTION" />
-        <AllowedWriteScope>
-          <File>src/motion_sensor.py</File>
-          <File>tests/test_motion_sensor.py</File>
-        </AllowedWriteScope>
-        <Verification>
-          <Command>python -m pytest tests/test_motion_sensor.py -v</Command>
-        </Verification>
-        <AcceptanceCriteria>
-          <Criterion>MotionSensor takes EventBus in constructor.</Criterion>
-          <Criterion>detect() method publishes 'motion_detected' event.</Criterion>
-        </AcceptanceCriteria>
-      </Slice>
-    </Wave>
-
-    <!-- WAVE 3: Parallel Actuators (Subscribers) -->
-    <Wave id="WAVE-ACTUATORS-3">
-      <Goal>Develop Thermostat and LightBulb that subscribe to events and change state.</Goal>
-      
-      <Slice id="SLICE-THERMO">
-        <Goal>Create thermostat.py. Subscribes to 'temp_change'. If temp is less than 20, turns on heating (is_on=True).</Goal>
-        <ModuleRef id="M-THERMO" />
-        <AllowedWriteScope>
-          <File>src/thermostat.py</File>
-          <File>tests/test_thermostat.py</File>
-        </AllowedWriteScope>
-        <Verification>
-          <Command>python -m pytest tests/test_thermostat.py -v</Command>
-        </Verification>
-        <AcceptanceCriteria>
-          <Criterion>Thermostat subscribes to 'temp_change' on initialization.</Criterion>
-          <Criterion>If event data temp is less than 20, device is_on becomes True.</Criterion>
-        </AcceptanceCriteria>
-      </Slice>
-
-      <Slice id="SLICE-LIGHT">
-        <Goal>Create light_bulb.py. Subscribes to 'motion_detected'. Turns on light (is_on=True) when motion occurs.</Goal>
-        <ModuleRef id="M-LIGHT" />
-        <AllowedWriteScope>
-          <File>src/light_bulb.py</File>
-          <File>tests/test_light_bulb.py</File>
-        </AllowedWriteScope>
-        <Verification>
-          <Command>python -m pytest tests/test_light_bulb.py -v</Command>
-        </Verification>
-        <AcceptanceCriteria>
-          <Criterion>LightBulb subscribes to 'motion_detected' on initialization.</Criterion>
-          <Criterion>When motion detected, device is_on becomes True.</Criterion>
-        </AcceptanceCriteria>
-      </Slice>
-    </Wave>
-
-    <!-- WAVE 4: Smart Home Controller (Deep Context Injection) -->
-    <Wave id="WAVE-CTRL-4">
-      <Goal>Create SmartHomeHub that initializes bus, sensors, and actuators, and runs a simulation tick.</Goal>
-      <ModuleRef id="M-CTRL" />
+      <Goal>Implement sensors that publish events via EventBus.</Goal>
       <AllowedWriteScope>
-        <File>src/controller.py</File>
-        <File>tests/test_controller.py</File>
+        <File>src/smart_home/sensors.py</File>
+        <File>tests/test_sensors.py</File>
       </AllowedWriteScope>
       <FrozenScope>
-        <File>src/models.py</File>
-        <File>src/event_bus.py</File>
-        <File>src/temp_sensor.py</File>
-        <File>src/motion_sensor.py</File>
-        <File>src/thermostat.py</File>
-        <File>src/light_bulb.py</File>
+        <File>src/smart_home/models.py</File>
+        <File>src/smart_home/event_bus.py</File>
+        <File>src/smart_home/actuators.py</File>
+        <File>src/smart_home/controller.py</File>
+        <File>src/smart_home/main.py</File>
+        <File>docs/*</File>
       </FrozenScope>
       <Verification>
-        <Command>python -m pytest tests/test_controller.py -v</Command>
+        <Command>python -m pytest tests/test_sensors.py -v</Command>
       </Verification>
       <AcceptanceCriteria>
-        <Criterion>controller.py imports EventBus, all sensors, and all actuators.</Criterion>
-        <Criterion>SmartHomeHub has simulate_motion() which triggers motion sensor and results in LightBulb turning on.</Criterion>
-        <Criterion>SmartHomeHub has simulate_cold_temp() which triggers temp sensor and results in Thermostat turning on.</Criterion>
+        <Criterion>TemperatureSensor.read(value) publishes Event("sensor.temperature", value).</Criterion>
+        <Criterion>MotionSensor.detect(bool) publishes Event("sensor.motion", bool).</Criterion>
+        <Criterion>Sensors accept EventBus in constructor.</Criterion>
       </AcceptanceCriteria>
+      <DeferredWork><Item>Sensor calibration — deferred</Item></DeferredWork>
     </Wave>
 
-    <!-- WAVE 5: Application -->
-    <Wave id="WAVE-APP-5">
-      <Goal>Create main.py that runs a simulation and outputs device states as JSON.</Goal>
-      <ModuleRef id="M-APP" />
+    <Wave id="WAVE-ACTUATORS-3">
+      <Goal>Implement actuators subscribed to sensor events.</Goal>
       <AllowedWriteScope>
-        <File>src/main.py</File>
+        <File>src/smart_home/actuators.py</File>
+        <File>tests/test_actuators.py</File>
+      </AllowedWriteScope>
+      <FrozenScope>
+        <File>src/smart_home/models.py</File>
+        <File>src/smart_home/event_bus.py</File>
+        <File>src/smart_home/sensors.py</File>
+        <File>src/smart_home/controller.py</File>
+        <File>src/smart_home/main.py</File>
+        <File>docs/*</File>
+      </FrozenScope>
+      <Verification>
+        <Command>python -m pytest tests/test_actuators.py -v</Command>
+      </Verification>
+      <AcceptanceCriteria>
+        <Criterion>Thermostat subscribed to sensor.temperature.</Criterion>
+        <Criterion>Thermostat.is_on follows threshold logic.</Criterion>
+        <Criterion>LightBulb subscribed to sensor.motion.</Criterion>
+        <Criterion>LightBulb.is_on follows motion state.</Criterion>
+      </AcceptanceCriteria>
+      <DeferredWork><Item>Thermostat hysteresis — deferred</Item></DeferredWork>
+    </Wave>
+
+    <Wave id="WAVE-INTEGRATION-4">
+      <Goal>Assemble all modules into SmartHomeController with CLI.</Goal>
+      <AllowedWriteScope>
+        <File>src/smart_home/controller.py</File>
+        <File>src/smart_home/main.py</File>
+        <File>tests/test_integration.py</File>
         <File>tests/test_main.py</File>
       </AllowedWriteScope>
       <FrozenScope>
-        <File>src/models.py</File>
-        <File>src/event_bus.py</File>
-        <File>src/temp_sensor.py</File>
-        <File>src/motion_sensor.py</File>
-        <File>src/thermostat.py</File>
-        <File>src/light_bulb.py</File>
-        <File>src/controller.py</File>
+        <File>src/smart_home/models.py</File>
+        <File>src/smart_home/event_bus.py</File>
+        <File>src/smart_home/sensors.py</File>
+        <File>src/smart_home/actuators.py</File>
+        <File>docs/*</File>
       </FrozenScope>
       <Verification>
-        <Command>python -m pytest tests/test_main.py -v</Command>
+        <Command>python -m pytest tests/test_integration.py tests/test_main.py -v</Command>
+        <Command>python -m smart_home.main</Command>
       </Verification>
       <AcceptanceCriteria>
-        <Criterion>main.py imports SmartHomeHub, runs simulations, and prints valid JSON with final device states.</Criterion>
+        <Criterion>SmartHomeController creates EventBus and registers devices.</Criterion>
+        <Criterion>simulate_cold_temp() toggles Thermostat ON.</Criterion>
+        <Criterion>simulate_motion() toggles LightBulb ON.</Criterion>
+        <Criterion>simulate_all_clear() toggles both OFF.</Criterion>
+        <Criterion>main.py outputs JSON, exit code 0.</Criterion>
+      </AcceptanceCriteria>
+      <DeferredWork><Item>Extended scenarios — deferred</Item></DeferredWork>
+    </Wave>
+
+    <Wave id="WAVE-TESTS-5">
+      <Goal>Full verification: all tests pass, scope clean.</Goal>
+      <AllowedWriteScope>
+        <File>tests/*</File>
+      </AllowedWriteScope>
+      <FrozenScope>
+        <File>src/smart_home/*</File>
+        <File>docs/*</File>
+      </FrozenScope>
+      <Verification>
+        <Command>python -m pytest tests/ -v</Command>
+      </Verification>
+      <AcceptanceCriteria>
+        <Criterion>All tests pass, exit code 0.</Criterion>
+        <Criterion>INV-01..INV-06 covered by tests.</Criterion>
+        <Criterion>FAIL-01..FAIL-04 covered by tests.</Criterion>
+        <Criterion>No src/ files modified.</Criterion>
       </AcceptanceCriteria>
     </Wave>
+
   </Phase>
+
 </DevelopmentPlan>

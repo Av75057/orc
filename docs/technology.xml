@@ -1,18 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Technology id="TECH-SMARTHOME" version="1.0" last_review="2026-07-27">
+<Technology id="TECH-SMARTHOME" version="2.0" last_review="2026-07-28">
+
   <RuntimeStack>
     <Language>Python 3.11+</Language>
     <Paradigm>Event-driven, publish/subscribe, synchronous in-process</Paradigm>
-    <DataModel>dataclasses for events, plain objects for devices</DataModel>
+    <DataModel>dataclasses for Event and Device. All models in src/smart_home/models.py.</DataModel>
   </RuntimeStack>
+
   <CriticalDependencies>
-    <Dependency><Name>Python Standard Library</Name><Modules>dataclasses, typing</Modules></Dependency>
-    <Dependency><Name>pytest</Name><Role>Test runner, dev only</Role></Dependency>
+    <Dependency id="DEP-01">
+      <Name>Python Standard Library</Name>
+      <Modules>dataclasses, typing, logging, json, sys, enum</Modules>
+      <Role>Only production dependency. External packages forbidden.</Role>
+    </Dependency>
+    <Dependency id="DEP-02">
+      <Name>pytest</Name>
+      <Version>&gt;=7.0</Version>
+      <Role>Test runner. Dev dependency only.</Role>
+    </Dependency>
   </CriticalDependencies>
+
   <OperationalConstraints>
-    <Constraint>Only Python Standard Library for production code</Constraint>
-    <Constraint>Synchronous event delivery. No threading/asyncio</Constraint>
-    <Constraint>All modules in one Python process</Constraint>
-    <Constraint>Events are immutable dataclasses</Constraint>
+    <Constraint>Only Python Standard Library for src/. pytest only in tests/.</Constraint>
+    <Constraint>Synchronous event delivery. Threading/asyncio forbidden.</Constraint>
+    <Constraint>All modules in one Python process.</Constraint>
+    <Constraint>Event — frozen dataclass. Payload — dict or scalar.</Constraint>
+    <Constraint>All files in src/smart_home/ package. Flat files in src/ forbidden.</Constraint>
   </OperationalConstraints>
+
+  <VerificationToolchain>
+    <Tool><Name>pytest (full suite)</Name><Command>python -m pytest tests/ -v</Command><Role>Phase gate</Role></Tool>
+    <Tool><Name>pytest (module gate)</Name><Command>python -m pytest tests/test_{module}.py -v</Command><Role>Wave gate</Role></Tool>
+    <Tool><Name>main.py smoke test</Name><Command>python -m smart_home.main</Command><Role>JSON output + exit code</Role></Tool>
+  </VerificationToolchain>
+
 </Technology>

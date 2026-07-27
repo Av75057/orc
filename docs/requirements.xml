@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Requirements id="REQ-SMARTHOME" version="1.0" last_review="2026-07-27">
+<Requirements id="REQ-SMARTHOME" version="2.0" last_review="2026-07-28">
 
   <SystemGoal>
     Event-driven Smart Home Automation System: sensors publish events
-    through EventBus, actuators subscribe and react, controller coordinates scenarios.
-    System runs in-process, no external services, verified by deterministic tests.
+    through EventBus, actuators subscribe and react, controller coordinates
+    scenarios. System runs in-process, no external services, verified by
+    deterministic tests.
   </SystemGoal>
 
   <UseCases>
@@ -24,9 +25,67 @@
       <Name>Smart home orchestration</Name>
       <Description>SmartHomeController creates EventBus, registers all sensors and actuators.</Description>
     </UseCase>
+    <UseCase id="UC-MAIN">
+      <Name>CLI entrypoint with JSON output</Name>
+      <Description>main.py runs SmartHomeController, executes scenarios, outputs JSON.</Description>
+    </UseCase>
     <UseCase id="UC-VERIFY">
       <Name>Deterministic verification</Name>
       <Description>pytest covers each use case. All tests deterministic, no external deps.</Description>
     </UseCase>
   </UseCases>
+
+  <Scope>
+    <InScope>
+      <Item>Event dataclass and Device base model</Item>
+      <Item>EventBus publish/subscribe with synchronous delivery</Item>
+      <Item>TemperatureSensor with configurable threshold</Item>
+      <Item>MotionSensor with boolean detection</Item>
+      <Item>Thermostat as subscriber on temperature events</Item>
+      <Item>LightBulb as subscriber on motion events</Item>
+      <Item>SmartHomeController for integration scenarios</Item>
+      <Item>CLI entrypoint with JSON output</Item>
+      <Item>pytest tests for all use cases</Item>
+    </InScope>
+    <OutScope>
+      <Item>Asynchronous event delivery</Item>
+      <Item>Event persistence</Item>
+      <Item>Network device communication</Item>
+      <Item>UI / dashboard</Item>
+      <Item>Authentication</Item>
+      <Item>Multi-home scaling</Item>
+      <Item>Sensor calibration</Item>
+    </OutScope>
+  </Scope>
+
+  <BusinessInvariants>
+    <Invariant id="INV-01">Every published event is delivered to all subscribers exactly once.</Invariant>
+    <Invariant id="INV-02">Thermostat.is_on == True iff last temperature < threshold.</Invariant>
+    <Invariant id="INV-03">LightBulb.is_on == True iff last motion == True.</Invariant>
+    <Invariant id="INV-04">EventBus does not lose subscribers during publish.</Invariant>
+    <Invariant id="INV-05">SmartHomeController does not modify EventBus directly.</Invariant>
+    <Invariant id="INV-06">Event is immutable. Payload does not mutate after publish.</Invariant>
+  </BusinessInvariants>
+
+  <ExpectedFailureHandling>
+    <Failure id="FAIL-01"><Trigger>Subscriber raises exception during handling.</Trigger><Behavior>EventBus logs error, continues delivery to other subscribers.</Behavior></Failure>
+    <Failure id="FAIL-02"><Trigger>Publish to topic with no subscribers.</Trigger><Behavior>Event silently ignored.</Behavior></Failure>
+    <Failure id="FAIL-03"><Trigger>Duplicate subscribe (same subscriber, same topic).</Trigger><Behavior>Second subscribe ignored. Delivered once.</Behavior></Failure>
+    <Failure id="FAIL-04"><Trigger>main.py imported without implemented modules.</Trigger><Behavior>ImportError with clear message. Exit code 1.</Behavior></Failure>
+  </ExpectedFailureHandling>
+
+  <KnownDefects>
+    <Defect id="DEFECT-001"><Description>Synchronous delivery blocks on slow subscriber.</Description><IntendedBehavior>Async/parallel delivery.</IntendedBehavior><Status>accepted</Status></Defect>
+    <Defect id="DEFECT-002"><Description>TemperatureSensor does not support calibration.</Description><IntendedBehavior>Calibration with offset and scaling.</IntendedBehavior><Status>accepted</Status></Defect>
+  </KnownDefects>
+
+  <SuccessCriteria>
+    <Criterion id="SC-01">All 6 use cases covered by pytest tests.</Criterion>
+    <Criterion id="SC-02">pytest exit code == 0.</Criterion>
+    <Criterion id="SC-03">Standard library only for src/.</Criterion>
+    <Criterion id="SC-04">All invariants INV-01..INV-06 tested.</Criterion>
+    <Criterion id="SC-05">Integration scenario passes end-to-end through EventBus.</Criterion>
+    <Criterion id="SC-06">main.py outputs valid JSON with device state.</Criterion>
+  </SuccessCriteria>
+
 </Requirements>
