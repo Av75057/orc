@@ -99,9 +99,6 @@
         <Criterion>checkout.py imports ShoppingCart, calculate_discount, and Notifier.</Criterion>
         <Criterion>End-to-end test: adds items, applies discount, processes checkout, sends notification.</Criterion>
       </AcceptanceCriteria>
-      <DeferredWork>
-        <Item>Add REST API endpoints in a future phase.</Item>
-      </DeferredWork>
     </Wave>
   </Phase>
 </DevelopmentPlan>
