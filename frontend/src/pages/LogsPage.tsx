@@ -89,8 +89,9 @@ function findStdoutFiles(node: TreeNode, prefix: string = ""): string[] {
     return [fullPath];
   }
   if (node.type === "directory" && node.children) {
-    return node.children.flatMap((child) => findStdoutFiles(child, nodeName));
+    return node.children.flatMap((child) => findStdoutFiles(child, fullPath));
   }
   return [];
 }
+
 

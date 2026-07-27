@@ -16,12 +16,17 @@ ORCHESTRATOR_FILES = [
 
 def get_changed_files(workspace: Optional[str] = None) -> List[str]:
     cwd = workspace or os.getcwd()
-    result = subprocess.run(
-        ["git", "status", "--porcelain"],
-        capture_output=True, text=True, check=False, cwd=cwd,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True, text=True, check=False, cwd=cwd,
+        )
+    except Exception as e:
+        print(f"[REVIEWER] Git error: {e}")
+        return ["__GIT_ERROR__"]
     if result.returncode != 0:
-        raise RuntimeError(f"git status failed: {result.stderr.strip()}")
+        print(f"[REVIEWER] Git error: {result.stderr.strip()}")
+        return ["__GIT_ERROR__"]
     files = []
     for line in result.stdout.splitlines():
         if not line.strip():
@@ -64,6 +69,13 @@ def _is_orchestrator_file(filepath: str) -> bool:
 
 def review_wave(wave: Wave, workspace: Optional[str] = None) -> Dict[str, Any]:
     changed = get_changed_files(workspace)
+    if "__GIT_ERROR__" in changed:
+        return {
+            "status": "FAILED",
+            "reason": "GIT_ERROR",
+            "violations": [],
+            "verification": {},
+        }
     changed = [f for f in changed if not _is_orchestrator_file(f)]
     violations = check_write_scope(changed, wave.allowed_write_scope)
     scope_ok = len(violations) == 0
@@ -85,4 +97,5 @@ def review_wave(wave: Wave, workspace: Optional[str] = None) -> Dict[str, Any]:
         "violations": [],
         "verification": verif,
     }
+
 
