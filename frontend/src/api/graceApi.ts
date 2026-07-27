@@ -107,7 +107,23 @@ export async function getEvidenceTree(): Promise<TreeNode> {
 }
 
 export async function getEvidenceFile(path: string): Promise<string> {
-  return requestText(`/api/evidence/file?path=${encodeURIComponent(path)}`);
+  const res = await fetch(`${BASE_URL}/api/evidence/file?path=${encodeURIComponent(path)}`);
+  if (!res.ok) {
+    let errMsg = `Failed to load file (${res.status})`;
+    try {
+      const errData = await res.json();
+      errMsg = errData.error || errMsg;
+    } catch {}
+    throw new Error(errMsg);
+  }
+  const text = await res.text();
+  try {
+    const parsed = JSON.parse(text);
+    if (typeof parsed === "string") return parsed;
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return text;
+  }
 }
 
 export async function resetState(): Promise<void> {
@@ -145,4 +161,5 @@ export function parseLogs(
       }
     });
 }
+
 

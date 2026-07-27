@@ -159,8 +159,12 @@ class GraceAPI:
         if not paths:
             return _json_response({"error": "Missing 'path' query parameter"}, 400)
         rel_path = paths[0].lstrip("/")
+        # Strip leading "evidence/" if frontend accidentally included it
+        if rel_path.startswith("evidence/"):
+            rel_path = rel_path[len("evidence/"):]
         full = self._abs("evidence", rel_path)
-        if not str(full).startswith(str(self._abs("evidence"))):
+        evidence_dir = self._abs("evidence")
+        if not str(full.resolve()).startswith(str(evidence_dir.resolve())):
             return _json_response({"error": "Path traversal not allowed"}, 403)
         if full.is_dir():
             return _json_response({"error": "Cannot read a directory"}, 400)
@@ -246,6 +250,7 @@ class GraceAPI:
         if method == "DELETE" and path == "/api/state":
             return self._delete_state()
         return _json_response({"error": "Not found"}, 404)
+
 
 
 
