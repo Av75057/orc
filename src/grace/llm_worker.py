@@ -119,7 +119,7 @@ class LLMWorker(GraceWorker):
         files = self._extract_files_from_text(raw)
         if files:
             return {"files_to_write": [{"path": p, "content": c} for p, c in files], "logs": []}
-        raise ValueError("Cannot parse LLM response")
+        raise ValueError(f"Cannot parse LLM response. RAW(first 500): {raw[:500]}")
 
     def _write_files(self, files_data: list, allowed: List[str]):
         if not files_data:
@@ -170,7 +170,7 @@ class LLMWorker(GraceWorker):
         try:
             parsed = self._parse_llm_response(llm_output)
         except ValueError as e:
-            self._log("malformed_llm_response", "fail", reason=str(e))
+            self._log("malformed_llm_response", "fail", reason=str(e), raw_response=llm_output[:1000])
             return False
 
         if not parsed.get("files_to_write"):
@@ -188,6 +188,7 @@ class LLMWorker(GraceWorker):
 
         self._log("execution_finished", "ok")
         return True
+
 
 
 
