@@ -6,6 +6,8 @@ from src.grace.models import DevelopmentPlan, Wave, Phase
 from src.grace.artifact_loader import load_development_plan
 from src.grace.controller import generate_controller_packet
 from src.grace.reviewer import review_wave
+import subprocess
+
 from src.grace.worker import GraceWorker, StubWorker
 
 
@@ -76,6 +78,16 @@ class GraceOrchestrator:
 Orchestrator execution stopped. Manual intervention required.
 """
 
+    def _commit_workspace(self, ws: str):
+        result = subprocess.run(
+            ["git", "add", "-A"],
+            capture_output=True, text=True, check=False, cwd=ws,
+        )
+        subprocess.run(
+            ["git", "commit", "-m", f"auto: {self.current_wave.id} completed"],
+            capture_output=True, text=True, check=False, cwd=ws,
+        )
+
     def run(self) -> OrchestratorResult:
         waves_completed = 0
         completed_ids: List[str] = []
@@ -102,6 +114,8 @@ Orchestrator execution stopped. Manual intervention required.
                     ),
                 )
 
+            self._commit_workspace(self.workspace)
+
             review = review_wave(wave, workspace=self.workspace)
             if review["status"] != "PASSED":
                 reason = review.get("reason", "Unknown gate failure")
@@ -127,4 +141,5 @@ Orchestrator execution stopped. Manual intervention required.
             waves_completed=waves_completed,
             completed_wave_ids=completed_ids,
         )
+
 
