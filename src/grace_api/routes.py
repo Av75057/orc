@@ -102,6 +102,33 @@ class GraceAPI:
             return _json_response({"error": f"Cannot create file: {e}", "path": str(full)}, 500)
         return _json_response({"success": True, "path": str(full.relative_to(self._base))})
 
+
+    def handle_artifact_save(self, body: Optional[bytes]) -> tuple:
+        if not body:
+            return _error("Request body is required")
+        try:
+            data = json.loads(body.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return _error("Invalid JSON body")
+
+        rel_path = data.get("path", "").lstrip("/")
+        content = data.get("content", "")
+        if not rel_path:
+            return _error("Missing 'path' field")
+
+        full = self._abs(rel_path)
+        docs_dir = self._abs("docs")
+        if not str(full).startswith(str(docs_dir)):
+            return _error("Path must be inside docs/", 403)
+
+        try:
+            full.parent.mkdir(parents=True, exist_ok=True)
+            full.write_text(content, encoding="utf-8")
+        except OSError as e:
+            return _json_response({"error": f"Cannot save file: {e}"}, 500)
+
+        return _json_response({"success": True, "path": str(full.relative_to(self._base))})
+
     def handle_artifact_file(self, query: str, body: Optional[bytes]) -> tuple:
         params = parse_qs(urlparse(f"?{query}").query)
         paths = params.get("path", [])
@@ -199,6 +226,8 @@ class GraceAPI:
             return self.handle_state()
         if method == "GET" and path == "/api/artifacts":
             return self.handle_artifacts()
+        if method == "POST" and path == "/api/artifacts/save":
+            return self.handle_artifact_save(body)
         if method == "POST" and path == "/api/artifacts/create":
             return self.handle_artifact_create(body)
         if method in ("GET", "POST") and path == "/api/artifacts/file":
@@ -212,3 +241,4 @@ class GraceAPI:
         if method == "DELETE" and path == "/api/state":
             return self._delete_state()
         return _json_response({"error": "Not found"}, 404)
+

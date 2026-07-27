@@ -90,14 +90,11 @@ export async function getArtifactContent(path: string): Promise<string> {
 }
 
 export async function saveArtifact(path: string, content: string): Promise<void> {
-  const res = await fetch(
-    `${BASE_URL}/api/artifacts/file?path=${encodeURIComponent(path)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
-    },
-  );
+  const res = await fetch(`${BASE_URL}/api/artifacts/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path, content }),
+  });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || `HTTP ${res.status}`);
@@ -147,4 +144,5 @@ export function parseLogs(
       }
     });
 }
+
 
