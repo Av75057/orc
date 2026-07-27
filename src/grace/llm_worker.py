@@ -43,21 +43,23 @@ class LLMWorker(GraceWorker):
         return items
 
     def execute(self, packet: str) -> bool:
-        print(f"[LLMWorker] Using model={self.model}, workspace={self.workspace}", file=sys.stderr)
+        self._log("execution_started", "ok",
+                  model=self.model, workspace=self.workspace)
 
         allowed = self._parse_scope(packet, "## Allowed Write Scope")
 
         if not allowed:
-            print("[LLMWorker] No allowed files found", file=sys.stderr)
+            self._log("no_allowed_files", "skip",
+                      reason="No allowed files found in packet")
             return True
 
-        system_prompt = """You are a code generation agent. Output ONLY code files in this format:
-
-===FILE:path/to/file.py===
-<complete code here>
-===END===
-
-Write complete, working code. Use the exact file paths from the Allowed Write Scope."""
+        system_prompt = (
+            "You are a code generation agent. Output ONLY code files in this format:"
+            "\n===FILE:path/to/file.py==="
+            "\n<complete code here>"
+            "\n===END==="
+            "\nWrite complete, working code. Use exact file paths from Allowed Write Scope."
+        )
 
         body = {
             "model": self.model,
@@ -68,6 +70,8 @@ Write complete, working code. Use the exact file paths from the Allowed Write Sc
             "temperature": 0.2,
             "max_tokens": 4096,
         }
+
+        self._log("llm_api_call_started", "ok", model=self.model)
 
         req = urllib.request.Request(
             self.api_url,
@@ -84,31 +88,41 @@ Write complete, working code. Use the exact file paths from the Allowed Write Sc
                 response = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             err = e.read().decode("utf-8", errors="replace")
-            print(f"[LLMWorker] HTTP {e.code}: {err}", file=sys.stderr)
+            self._log("llm_api_call_failed", "fail",
+                      reason=f"HTTP {e.code}", details=err[:200])
             return False
         except Exception as e:
-            print(f"[LLMWorker] Error: {e}", file=sys.stderr)
+            self._log("llm_api_call_failed", "fail", reason=str(e))
             return False
+
+        self._log("llm_api_call_finished", "ok",
+                  usage=str(response.get("usage", {})))
 
         try:
             llm_output = response["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError):
-            print("[LLMWorker] Unexpected API response", file=sys.stderr)
+            self._log("llm_parse_failed", "fail",
+                      reason="Unexpected API response format")
             return False
 
         files = self._extract_files(llm_output, allowed)
         if not files:
             files = self._extract_files_fallback(llm_output, allowed)
         if not files:
-            print("[LLMWorker] No code blocks found in response", file=sys.stderr)
+            self._log("no_code_blocks", "fail",
+                      reason="No code blocks found in LLM response")
             return False
 
         for rel_path, code in files:
             abs_path = Path(self.workspace) / rel_path
             abs_path.parent.mkdir(parents=True, exist_ok=True)
             abs_path.write_text(code, encoding="utf-8")
-            print(f"[LLMWorker] Wrote {abs_path} ({len(code)} bytes)", file=sys.stderr)
+            self._log("file_written", "ok",
+                      path=str(abs_path), size_bytes=len(code))
 
+        self._log("execution_finished", "ok",
+                  files_written=len(files),
+                  paths=[str(Path(self.workspace) / f[0]) for f in files])
         return True
 
     def _extract_files(self, output: str, allowed: List[str]) -> List[Tuple[str, str]]:
@@ -127,4 +141,3 @@ Write complete, working code. Use the exact file paths from the Allowed Write Sc
         if len(matches) == len(allowed):
             return [(allowed[i], code.strip()) for i, code in enumerate(matches)]
         return []
-
