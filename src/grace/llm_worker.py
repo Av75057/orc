@@ -2,11 +2,19 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.request
 import urllib.error
 from pathlib import Path
 from typing import List, Tuple, Optional
 from src.grace.worker import GraceWorker
+
+MAX_API_RETRIES = 3
+RATE_LIMIT_SLEEP = 10
+
+
+class ScopeViolationError(Exception):
+    pass
 
 
 class LLMWorker(GraceWorker):
@@ -46,73 +54,121 @@ class LLMWorker(GraceWorker):
                 items.append(m.group(1))
         return items
 
+    def _build_system_prompt(self) -> str:
+        return (
+            "You are a strict code generation agent."
+            "\n"
+            "\nOutput ONLY valid JSON with this structure:"
+            '\n{"files_to_write": [{"path": "src/file.py", "content": "code here"}], "logs": []}'
+            "\n"
+            "\nCRITICAL RULES:"
+            "\n1. Write ONLY to files listed in 'Allowed Write Scope'."
+            "\n2. Use REAL interfaces from 'Existing Context'. NEVER invent new methods."
+            "\n3. Generate complete, working code with proper imports."
+            "\n4. For test files, use pytest best practices."
+            "\n5. Output ONLY the JSON object, no markdown wrappers, no explanations."
+        )
+
+    def _call_api(self, messages: list) -> dict:
+        body = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": 0.2,
+            "max_tokens": 4096,
+        }
+
+        last_error = ""
+        for attempt in range(MAX_API_RETRIES):
+            try:
+                req = urllib.request.Request(
+                    self.api_url,
+                    data=json.dumps(body).encode("utf-8"),
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {self.api_key}",
+                    },
+                    method="POST",
+                )
+                with urllib.request.urlopen(req, timeout=60) as resp:
+                    return json.loads(resp.read().decode("utf-8"))
+            except urllib.error.HTTPError as e:
+                err_body = e.read().decode("utf-8", errors="replace")
+                code = e.code
+                if code in (429, 502, 503, 504):
+                    self._log("rate_limit_retry", "retry",
+                              attempt=attempt + 1, code=code)
+                    time.sleep(RATE_LIMIT_SLEEP)
+                    last_error = f"HTTP {code}"
+                    continue
+                self._log("llm_api_call_failed", "fail",
+                          reason=f"HTTP {code}", details=err_body[:200])
+                raise
+            except Exception as e:
+                self._log("llm_api_call_failed", "fail", reason=str(e))
+                raise
+
+        self._log("rate_limit_exceeded", "fail", reason=last_error)
+        raise RuntimeError(f"LLM rate limit exceeded after {MAX_API_RETRIES} attempts")
+
+    def _parse_llm_response(self, raw: str) -> dict:
+        json_str = raw.strip()
+        m = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', raw, re.DOTALL)
+        if m:
+            json_str = m.group(1).strip()
+        return json.loads(json_str)
+
+    def _write_files(self, files_data: list, allowed: List[str]):
+        if not files_data:
+            self._log("no_files_to_write", "fail", reason="Empty files_to_write")
+            raise RuntimeError("LLM returned empty files_to_write")
+
+        for entry in files_data:
+            path = entry.get("path", "")
+            content = entry.get("content", "")
+
+            if path not in allowed:
+                raise ScopeViolationError(
+                    f"File '{path}' is not in Allowed Write Scope: {allowed}"
+                )
+
+            abs_path = Path(self.workspace) / path
+            abs_path.parent.mkdir(parents=True, exist_ok=True)
+            abs_path.write_text(content, encoding="utf-8")
+            self._log("file_written", "ok",
+                      path=str(abs_path), size_bytes=len(content))
+
     def execute(self, packet: str, error_context: Optional[str] = None) -> bool:
         self._log("execution_started", "ok",
                   model=self.model, workspace=self.workspace,
                   is_repair=(error_context is not None))
 
         allowed = self._parse_scope(packet, "## Allowed Write Scope")
-
         if not allowed:
             self._log("no_allowed_files", "fail",
                       reason="No allowed files found in packet")
             return False
 
-        system_prompt = (
-            "You are a strict code generation agent. Output ONLY code files in this format:"
-            "\n===FILE:path/to/file.py==="
-            "\n<complete code here>"
-            "\n===END==="
-            "\n"
-            "\nCRITICAL RULES:"
-            "\n1. If the user message has an '## Existing Context' section, that code contains"
-            "\n   REAL interfaces. You MUST use the exact names, signatures, and import paths."
-            "\n   NEVER invent new methods or classes that conflict with existing ones."
-            "\n2. Generate code compatible with existing interfaces. Check import names carefully."
-            "\n3. For integration tests, mock or stub external dependencies."
-            "\n4. Write complete, working code with proper imports."
-            "\n5. Use the EXACT file paths from 'Allowed Write Scope' section."
-        )
+        system_prompt = self._build_system_prompt()
 
         user_message = packet
         if error_context:
             user_message = (
-                f"Previous attempt failed with the following error:\n"
-                f"```\n{error_context}\n```\n\n"
-                f"Please fix the code in the Allowed Write Scope to resolve this error.\n\n"
+                f"## PREVIOUS ATTEMPT FAILED\n"
+                f"Your previous code failed with this error:\n"
+                f"```\n{error_context}\n```\n"
+                f"Please fix the code strictly within Allowed Write Scope.\n\n"
                 f"{packet}"
             )
 
-        body = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
-            ],
-            "temperature": 0.2,
-            "max_tokens": 4096,
-        }
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message},
+        ]
 
         self._log("llm_api_call_started", "ok", model=self.model)
 
-        req = urllib.request.Request(
-            self.api_url,
-            data=json.dumps(body).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}",
-            },
-            method="POST",
-        )
-
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
-                response = json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            err = e.read().decode("utf-8", errors="replace")
-            self._log("llm_api_call_failed", "fail",
-                      reason=f"HTTP {e.code}", details=err[:200])
-            return False
+            response = self._call_api(messages)
         except Exception as e:
             self._log("llm_api_call_failed", "fail", reason=str(e))
             return False
@@ -127,39 +183,21 @@ class LLMWorker(GraceWorker):
                       reason="Unexpected API response format")
             return False
 
-        files = self._extract_files(llm_output, allowed)
-        if not files:
-            files = self._extract_files_fallback(llm_output, allowed)
-        if not files:
-            self._log("no_code_blocks", "fail",
-                      reason="No code blocks found in LLM response")
+        try:
+            parsed = self._parse_llm_response(llm_output)
+        except (json.JSONDecodeError, ValueError) as e:
+            self._log("malformed_llm_response", "fail", reason=str(e))
             return False
 
-        for rel_path, code in files:
-            abs_path = Path(self.workspace) / rel_path
-            abs_path.parent.mkdir(parents=True, exist_ok=True)
-            abs_path.write_text(code, encoding="utf-8")
-            self._log("file_written", "ok",
-                      path=str(abs_path), size_bytes=len(code))
+        try:
+            self._write_files(parsed.get("files_to_write", []), allowed)
+        except ScopeViolationError as e:
+            self._log("scope_violation", "fail", reason=str(e))
+            return False
+        except RuntimeError as e:
+            self._log("write_failed", "fail", reason=str(e))
+            return False
 
-        self._log("execution_finished", "ok",
-                  files_written=len(files))
+        self._log("execution_finished", "ok")
         return True
-
-    def _extract_files(self, output: str, allowed: List[str]) -> List[Tuple[str, str]]:
-        pattern = re.compile(r'===FILE:(.+?)===\n(.*?)===END===', re.DOTALL)
-        matches = pattern.findall(output)
-        result = []
-        for filepath, code in matches:
-            filepath = filepath.strip()
-            if filepath in allowed:
-                result.append((filepath, code.strip()))
-        return result
-
-    def _extract_files_fallback(self, output: str, allowed: List[str]) -> List[Tuple[str, str]]:
-        pattern = re.compile(r'```(?:python)?\n(.*?)```', re.DOTALL)
-        matches = pattern.findall(output)
-        if len(matches) == len(allowed):
-            return [(allowed[i], code.strip()) for i, code in enumerate(matches)]
-        return []
 

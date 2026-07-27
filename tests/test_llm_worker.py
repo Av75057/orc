@@ -66,7 +66,7 @@ class TestLLMWorkerContext:
     def test_existing_context_in_payload(self, mock_urlopen):
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps({
-            "choices": [{"message": {"content": "===FILE:src/app.py===\nprint('ok')\n===END==="}}],
+            "choices": [{"message": {"content": "{\"files_to_write\": [{\"path\": \"src/app.py\", \"content\": \"print('ok')\"}], \"logs\": []}"}}],
             "usage": {"total_tokens": 100},
         }).encode()
         mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -104,7 +104,7 @@ class Database:
     def test_prompt_has_strict_rules(self, mock_urlopen):
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps({
-            "choices": [{"message": {"content": "===FILE:src/app.py===\nprint('ok')\n===END==="}}],
+            "choices": [{"message": {"content": "{\"files_to_write\": [{\"path\": \"src/app.py\", \"content\": \"print('ok')\"}], \"logs\": []}"}}],
             "usage": {},
         }).encode()
         mock_urlopen.return_value.__enter__.return_value = mock_response
@@ -134,5 +134,6 @@ class Database:
         worker.api_url = "http://test/api"
         result = worker.execute(packet)
         assert result is False
+
 
 
