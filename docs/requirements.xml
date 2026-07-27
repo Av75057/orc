@@ -1,61 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Requirements>
-  <SystemGoal>Build a strict GRACE methodology orchestrator that loads development plans, 
-    generates controller packets, reviews wave gates, and produces structured 
-    execution evidence.</SystemGoal>
+  <SystemGoal>Build a modular NLP text processing pipeline that tokenizes, removes stopwords, stems, and analyzes sentiment.</SystemGoal>
+  
   <UseCases>
-    <UseCase id="UC-PLAN-LOAD">
-      <Name>Load Development Plan</Name>
-      <Description>The system shall load a development-plan.xml from disk 
-      and parse it into structured Python objects.</Description>
-      <Priority>high</Priority>
+    <UseCase id="UC-TOKENIZE">
+      <Description>Split text into lowercase tokens.</Description>
     </UseCase>
-    <UseCase id="UC-PACKET-GEN">
-      <Name>Generate Controller Packet</Name>
-      <Description>The system shall generate a Controller Packet in Markdown 
-      format for a given wave from the development plan.</Description>
-      <Priority>high</Priority>
+    <UseCase id="UC-STOPWORDS">
+      <Description>Remove common English stopwords from a list of tokens.</Description>
     </UseCase>
-    <UseCase id="UC-GATE-CHECK">
-      <Name>Review Wave Gate</Name>
-      <Description>The system shall verify changed files are within 
-      AllowedWriteScope and run verification commands.</Description>
-      <Priority>high</Priority>
+    <UseCase id="UC-STEM">
+      <Description>Reduce tokens to their root form handling double consonants.</Description>
     </UseCase>
-    <UseCase id="UC-ORCHESTRATE">
-      <Name>Orchestrate Execution</Name>
-      <Description>The system shall run the main orchestration loop: 
-      Controller to Worker to Reviewer to advance.</Description>
-      <Priority>high</Priority>
+    <UseCase id="UC-SENTIMENT">
+      <Description>Calculate a sentiment score (-1.0 to 1.0) based on positive/negative keywords.</Description>
+    </UseCase>
+    <UseCase id="UC-PIPELINE">
+      <Description>Orchestrate all NLP modules into a single processing pipeline.</Description>
+    </UseCase>
+    <UseCase id="UC-CLI">
+      <Description>Provide a command-line interface to run the pipeline and output JSON.</Description>
     </UseCase>
   </UseCases>
-  <InScope>
-    <Item>XML artifact parsing (development-plan, knowledge-graph, requirements, technology)</Item>
-    <Item>Controller packet generation in Markdown</Item>
-    <Item>Git-based write scope verification</Item>
-    <Item>Subprocess-based verification command execution</Item>
-    <Item>Structured JSON logging</Item>
-  </InScope>
-  <OutOfScope>
-    <Item>Network communication or remote agent execution</Item>
-    <Item>Persistent state storage beyond git</Item>
-    <Item>GUI or web frontend</Item>
-  </OutOfScope>
-  <BusinessInvariants>
-    <Invariant>The orchestrator must never modify frozen files</Invariant>
-    <Invariant>All ID must follow semantic prefix convention (M-, UC-, SCN-, DEFECT-, etc.)</Invariant>
-    <Invariant>No external dependencies beyond Python standard library</Invariant>
-  </BusinessInvariants>
-  <KnownDefects>
-    <Defect id="DEFECT-001">
-      <Title>Git diff fails outside repository context</Title>
-      <Severity>medium</Severity>
-      <Workaround>Initialize a git repository before running the orchestrator</Workaround>
-    </Defect>
-    <Defect id="DEFECT-002">
-      <Title>Wave selection only supports first phase as default</Title>
-      <Severity>low</Severity>
-      <Workaround>Specify explicit wave ID when working with multi-phase plans</Workaround>
-    </Defect>
-  </KnownDefects>
+
+  <Scope>
+    <InScope>Core NLP logic, Pipeline orchestration, CLI.</InScope>
+    <OutOfScope>Web servers, Databases, External NLP libraries (NLTK/Spacy).</OutOfScope>
+  </Scope>
+
+  <Invariants>
+    <Invariant>tokenizer.tokenize(text) MUST return a list of strings.</Invariant>
+    <Invariant>stopwords.remove_stopwords(tokens) MUST return a list of strings.</Invariant>
+    <Invariant>stemmer.stem(word) MUST return a string.</Invariant>
+    <Invariant>sentiment.analyze(text) MUST return a float.</Invariant>
+    <Invariant>Pipeline.process(text) MUST return a dict with keys: 'tokens', 'stems', 'sentiment'.</Invariant>
+  </Invariants>
 </Requirements>

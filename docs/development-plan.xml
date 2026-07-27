@@ -1,105 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <DevelopmentPlan>
-  <Phase id="PHASE-NLP">
-    <Goal>Build a modular NLP text processing pipeline with deep dependencies.</Goal>
+  <Phase id="PHASE-CALC">
+    <Goal>Build a Calculator module with tests.</Goal>
 
-    <!-- WAVE 1: Foundation -->
-    <Wave id="WAVE-BASE-1">
-      <Goal>Create text tokenizer and stopwords remover.</Goal>
-      <ModuleRef id="M-BASE" />
+    <Wave id="WAVE-CORE-1">
+      <Goal>Create core arithmetic functions (add, subtract, multiply, divide).</Goal>
       <AllowedWriteScope>
-        <File>src/tokenizer.py</File>
-        <File>src/stopwords.py</File>
-        <File>tests/test_tokenizer.py</File>
-      </AllowedWriteScope>
-      <Verification>
-        <Command>python -m pytest tests/test_tokenizer.py -v</Command>
-      </Verification>
-      <AcceptanceCriteria>
-        <Criterion>tokenizer.py has tokenize(text) returning list of words.</Criterion>
-        <Criterion>stopwords.py has remove_stopwords(tokens) returning filtered list.</Criterion>
-      </AcceptanceCriteria>
-    </Wave>
-
-    <!-- WAVE 2: Parallel Feature Engineering -->
-    <Wave id="WAVE-FEATURES-2">
-      <Goal>Develop Stemmer and Sentiment Analyzer in parallel.</Goal>
-      
-      <Slice id="SLICE-STEMMER">
-        <Goal>Create stemmer.py with stem(word) and stem_tokens(tokens).</Goal>
-        <ModuleRef id="M-STEM" />
-        <AllowedWriteScope>
-          <File>src/stemmer.py</File>
-          <File>tests/test_stemmer.py</File>
-        </AllowedWriteScope>
-        <Verification>
-          <Command>python -m pytest tests/test_stemmer.py -v</Command>
-        </Verification>
-        <AcceptanceCriteria>
-          <Criterion>stemmer.py reduces words to their root (simulated or basic rule-based).</Criterion>
-        </AcceptanceCriteria>
-      </Slice>
-
-      <Slice id="SLICE-SENTIMENT">
-        <Goal>Create sentiment.py with analyze(text) returning a sentiment score (-1.0 to 1.0).</Goal>
-        <ModuleRef id="M-SENT" />
-        <AllowedWriteScope>
-          <File>src/sentiment.py</File>
-          <File>tests/test_sentiment.py</File>
-        </AllowedWriteScope>
-        <Verification>
-          <Command>python -m pytest tests/test_sentiment.py -v</Command>
-        </Verification>
-        <AcceptanceCriteria>
-          <Criterion>sentiment.py returns positive score for good words, negative for bad.</Criterion>
-        </AcceptanceCriteria>
-      </Slice>
-    </Wave>
-
-    <!-- WAVE 3: Deep Integration (Uses Context Injection from ALL previous modules) -->
-    <Wave id="WAVE-PIPE-3">
-      <Goal>Create the Pipeline class that orchestrates tokenizer, stopwords, stemmer, and sentiment.</Goal>
-      <ModuleRef id="M-PIPE" />
-      <AllowedWriteScope>
-        <File>src/pipeline.py</File>
-        <File>tests/test_pipeline.py</File>
+        <File>src/calc.py</File>
+        <File>tests/test_calc.py</File>
       </AllowedWriteScope>
       <FrozenScope>
-        <File>src/tokenizer.py</File>
-        <File>src/stopwords.py</File>
-        <File>src/stemmer.py</File>
-        <File>src/sentiment.py</File>
+        <File>src/grace/</File>
+        <File>frontend/</File>
+        <File>docs/</File>
       </FrozenScope>
       <Verification>
-        <Command>python -m pytest tests/test_pipeline.py -v</Command>
+        <Command>python -m pytest tests/test_calc.py -v</Command>
       </Verification>
-      <AcceptanceCriteria>
-        <Criterion>pipeline.py imports all 4 modules and uses their exact interfaces.</Criterion>
-        <Criterion>Pipeline.process(text) returns a dict with 'tokens', 'stems', and 'sentiment'.</Criterion>
-      </AcceptanceCriteria>
     </Wave>
 
-    <!-- WAVE 4: Application Layer -->
-    <Wave id="WAVE-APP-4">
-      <Goal>Create a CLI app that reads a hardcoded string, processes it via Pipeline, and prints JSON result.</Goal>
-      <ModuleRef id="M-APP" />
+    <Wave id="WAVE-EXTRA-2">
+      <Goal>Add power and square root functions using existing calc.py interface.</Goal>
       <AllowedWriteScope>
-        <File>src/app.py</File>
-        <File>tests/test_app.py</File>
+        <File>src/calc.py</File>
+        <File>tests/test_calc.py</File>
       </AllowedWriteScope>
       <FrozenScope>
-        <File>src/tokenizer.py</File>
-        <File>src/stopwords.py</File>
-        <File>src/stemmer.py</File>
-        <File>src/sentiment.py</File>
-        <File>src/pipeline.py</File>
+        <File>src/grace/</File>
+        <File>frontend/</File>
+        <File>docs/</File>
       </FrozenScope>
       <Verification>
-        <Command>python -m pytest tests/test_app.py -v</Command>
+        <Command>python -m pytest tests/test_calc.py -v</Command>
       </Verification>
-      <AcceptanceCriteria>
-        <Criterion>app.py imports Pipeline, runs it, and outputs valid JSON.</Criterion>
-      </AcceptanceCriteria>
     </Wave>
   </Phase>
 </DevelopmentPlan>
+

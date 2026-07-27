@@ -1,84 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <KnowledgeGraph>
-  <Module id="M-CORE">
-    <Name>Core Models &amp; Loader</Name>
-    <Functions>
-      <Function id="F-load_plan">
-        <Name>load_development_plan</Name>
-        <Signature>load_development_plan(path: str) -> DevelopmentPlan</Signature>
-      </Function>
-      <Function id="F-generate_packet">
-        <Name>generate_controller_packet</Name>
-        <Signature>generate_controller_packet(plan, wave_id) -> str</Signature>
-      </Function>
-    </Functions>
-    <Links>
-      <UseCase id="UC-PLAN-LOAD" />
-      <UseCase id="UC-PACKET-GEN" />
-    </Links>
-  </Module>
-  <Module id="M-REVIEWER">
-    <Name>Gate Reviewer</Name>
-    <Functions>
-      <Function id="F-review_wave">
-        <Name>review_wave</Name>
-        <Signature>review_wave(wave, commit_ref) -> dict</Signature>
-      </Function>
-      <Function id="F-check_scope">
-        <Name>check_write_scope</Name>
-        <Signature>check_write_scope(changed, allowed) -> list</Signature>
-      </Function>
-    </Functions>
-    <Links>
-      <UseCase id="UC-GATE-CHECK" />
-    </Links>
-  </Module>
-  <Module id="M-ORCHESTRATOR">
-    <Name>Orchestrator</Name>
-    <Functions>
-      <Function id="F-run">
-        <Name>run</Name>
-        <Signature>run() -> OrchestratorResult</Signature>
-      </Function>
-    </Functions>
-    <Links>
-      <UseCase id="UC-ORCHESTRATE" />
-      <Scenario id="SCN-BOOT" />
-    </Links>
-  </Module>
-  <ExternalSystem id="EXT-GIT">
-    <Name>Git VCS</Name>
-    <Type>version_control</Type>
-  </ExternalSystem>
-  <ExternalSystem id="EXT-PYTHON">
-    <Name>Python 3.9+ Runtime</Name>
-    <Type>runtime</Type>
-  </ExternalSystem>
-  <Defect id="DEFECT-001">
-    <Title>Git diff fails outside repository context</Title>
-    <Severity>medium</Severity>
-    <AffectedModule id="M-REVIEWER" />
-  </Defect>
-  <Defect id="DEFECT-002">
-    <Title>Wave selection only supports first phase default</Title>
-    <Severity>low</Severity>
-    <AffectedModule id="M-ORCHESTRATOR" />
-  </Defect>
+  <Modules>
+    <Module id="M-BASE">
+      <Name>Base NLP Utilities</Name>
+      <Functions>
+        <Function id="F-TOKENIZE">tokenize(text) -> list[str]</Function>
+        <Function id="F-STOPWORDS">remove_stopwords(tokens) -> list[str]</Function>
+      </Functions>
+    </Module>
+    <Module id="M-STEM">
+      <Name>Stemmer</Name>
+      <Functions>
+        <Function id="F-STEM">stem(word) -> str</Function>
+        <Function id="F-STEM_TOKENS">stem_tokens(tokens) -> list[str]</Function>
+      </Functions>
+    </Module>
+    <Module id="M-SENT">
+      <Name>Sentiment Analyzer</Name>
+      <Functions>
+        <Function id="F-ANALYZE">analyze(text) -> float</Function>
+      </Functions>
+    </Module>
+    <Module id="M-PIPE">
+      <Name>Pipeline</Name>
+      <Functions>
+        <Function id="F-PROCESS">process(text) -> dict</Function>
+      </Functions>
+    </Module>
+    <Module id="M-APP">
+      <Name>CLI Application</Name>
+      <Functions>
+        <Function id="F-MAIN">main() -> None</Function>
+      </Functions>
+    </Module>
+  </Modules>
+  
   <CrossLinks>
-    <Link>
-      <UseCase id="UC-PLAN-LOAD" />
-      <Module id="M-CORE" />
-      <Verification id="SCN-BOOT" />
-    </Link>
-    <Link>
-      <UseCase id="UC-GATE-CHECK" />
-      <Module id="M-REVIEWER" />
-      <Verification id="SCN-BOOT" />
-    </Link>
-    <Link>
-      <UseCase id="UC-ORCHESTRATE" />
-      <Module id="M-ORCHESTRATOR" />
-      <Verification id="SCN-BOOT" />
-    </Link>
+    <Link source="UC-TOKENIZE" target="M-BASE" />
+    <Link source="UC-STOPWORDS" target="M-BASE" />
+    <Link source="UC-STEM" target="M-STEM" />
+    <Link source="UC-SENTIMENT" target="M-SENT" />
+    <Link source="UC-PIPELINE" target="M-PIPE" />
+    <Link source="UC-CLI" target="M-APP" />
+    <Link source="M-PIPE" target="M-BASE" />
+    <Link source="M-PIPE" target="M-STEM" />
+    <Link source="M-PIPE" target="M-SENT" />
+    <Link source="M-APP" target="M-PIPE" />
   </CrossLinks>
 </KnowledgeGraph>

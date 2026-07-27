@@ -1,39 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Technology>
-  <RuntimeStack>
-    <Language>Python</Language>
-    <Version>3.9+</Version>
-    <Runtime>CPython</Runtime>
-  </RuntimeStack>
-  <Dependencies>
-    <Dependency critical="true">
-      <Name>Python Standard Library</Name>
-      <Purpose>XML parsing, subprocess execution, dataclasses, logging, argparse</Purpose>
-    </Dependency>
-    <Dependency critical="false">
-      <Name>pytest</Name>
-      <Purpose>Verification harness for wave gates</Purpose>
-    </Dependency>
-    <Dependency critical="false">
-      <Name>Git VCS</Name>
-      <Purpose>Write scope diff detection</Purpose>
-    </Dependency>
-  </Dependencies>
-  <OperationalConstraints>
-    <Constraint>Must run on Linux x86_64</Constraint>
-    <Constraint>No network access required during orchestration</Constraint>
-    <Constraint>All artifacts stored as XML in docs/ directory</Constraint>
-  </OperationalConstraints>
-  <Toolchain>
-    <Tool id="T-PYTEST">
-      <Name>pytest</Name>
-      <Command>python -m pytest {test_path} -v</Command>
-      <Scope>verification</Scope>
-    </Tool>
-    <Tool id="T-PYTHON">
-      <Name>Python Interpreter</Name>
-      <Command>python3 {script_path}</Command>
-      <Scope>execution</Scope>
-    </Tool>
-  </Toolchain>
+  <RuntimeStack>Python 3.9+</RuntimeStack>
+  <Dependencies>Standard Library only (re, json, argparse, sys)</Dependencies>
+  <Constraints>No external NLP libraries allowed. No external HTTP clients.</Constraints>
+  <Toolchain>pytest</Toolchain>
 </Technology>
