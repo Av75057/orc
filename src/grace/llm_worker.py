@@ -57,114 +57,95 @@ class LLMWorker(GraceWorker):
     def _build_system_prompt(self) -> str:
         return (
             "You are a strict code generation agent."
-            "\n"
-            "\nOutput ONLY valid JSON with this structure:"
-            '\n{"files_to_write": [{"path": "src/file.py", "content": "code here"}], "logs": []}'
+            "\nUse this format for each file:"
+            "\n===FILE:path/to/file.py==="
+            "\n<complete code here>"
+            "\n===END==="
             "\n"
             "\nCRITICAL RULES:"
-            "\n1. Write ONLY to files listed in 'Allowed Write Scope'."
-            "\n2. Use REAL interfaces from 'Existing Context'. NEVER invent new methods."
+            "\n1. Write ONLY to files listed in Allowed Write Scope."
+            "\n2. Use REAL interfaces from Existing Context. NEVER invent new methods."
             "\n3. Generate complete, working code with proper imports."
             "\n4. For test files, use pytest best practices."
-            "\n5. Output ONLY the JSON object, no markdown wrappers, no explanations."
         )
 
     def _call_api(self, messages: list) -> dict:
-        body = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": 0.2,
-            "max_tokens": 4096,
-        }
-
+        body = {"model": self.model, "messages": messages, "temperature": 0.2, "max_tokens": 4096}
         last_error = ""
         for attempt in range(MAX_API_RETRIES):
             try:
                 req = urllib.request.Request(
                     self.api_url,
                     data=json.dumps(body).encode("utf-8"),
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {self.api_key}",
-                    },
+                    headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.api_key}"},
                     method="POST",
                 )
                 with urllib.request.urlopen(req, timeout=60) as resp:
                     return json.loads(resp.read().decode("utf-8"))
             except urllib.error.HTTPError as e:
                 err_body = e.read().decode("utf-8", errors="replace")
-                code = e.code
-                if code in (429, 502, 503, 504):
-                    self._log("rate_limit_retry", "retry",
-                              attempt=attempt + 1, code=code)
+                if e.code in (429, 502, 503, 504):
+                    self._log("rate_limit_retry", "retry", attempt=attempt + 1, code=e.code)
                     time.sleep(RATE_LIMIT_SLEEP)
-                    last_error = f"HTTP {code}"
+                    last_error = f"HTTP {e.code}"
                     continue
-                self._log("llm_api_call_failed", "fail",
-                          reason=f"HTTP {code}", details=err_body[:200])
+                self._log("llm_api_call_failed", "fail", reason=f"HTTP {e.code}", details=err_body[:200])
                 raise
             except Exception as e:
                 self._log("llm_api_call_failed", "fail", reason=str(e))
                 raise
-
         self._log("rate_limit_exceeded", "fail", reason=last_error)
         raise RuntimeError(f"LLM rate limit exceeded after {MAX_API_RETRIES} attempts")
 
+    def _extract_files_from_text(self, output: str) -> list:
+        pattern = re.compile(r'===FILE:(.+?)===\n(.*?)===END===', re.DOTALL)
+        matches = pattern.findall(output)
+        result = []
+        for filepath, code in matches:
+            result.append((filepath.strip(), code.strip()))
+        return result
+
     def _parse_llm_response(self, raw: str) -> dict:
-        json_str = raw.strip()
-        m = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', raw, re.DOTALL)
+        text = raw.strip()
+        m = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', text, re.DOTALL)
         if m:
-            json_str = m.group(1).strip()
-        return json.loads(json_str)
+            text = m.group(1).strip()
+        try:
+            return json.loads(text)
+        except (json.JSONDecodeError, ValueError):
+            pass
+        files = self._extract_files_from_text(raw)
+        if files:
+            return {"files_to_write": [{"path": p, "content": c} for p, c in files], "logs": []}
+        raise ValueError("Cannot parse LLM response")
 
     def _write_files(self, files_data: list, allowed: List[str]):
         if not files_data:
-            self._log("no_files_to_write", "fail", reason="Empty files_to_write")
             raise RuntimeError("LLM returned empty files_to_write")
-
         for entry in files_data:
             path = entry.get("path", "")
             content = entry.get("content", "")
-
             if path not in allowed:
-                raise ScopeViolationError(
-                    f"File '{path}' is not in Allowed Write Scope: {allowed}"
-                )
-
+                raise ScopeViolationError(f"File '{path}' is not in Allowed Write Scope: {allowed}")
             abs_path = Path(self.workspace) / path
             abs_path.parent.mkdir(parents=True, exist_ok=True)
             abs_path.write_text(content, encoding="utf-8")
-            self._log("file_written", "ok",
-                      path=str(abs_path), size_bytes=len(content))
+            self._log("file_written", "ok", path=str(abs_path), size_bytes=len(content))
 
     def execute(self, packet: str, error_context: Optional[str] = None) -> bool:
-        self._log("execution_started", "ok",
-                  model=self.model, workspace=self.workspace,
-                  is_repair=(error_context is not None))
+        self._log("execution_started", "ok", model=self.model, workspace=self.workspace, is_repair=(error_context is not None))
 
         allowed = self._parse_scope(packet, "## Allowed Write Scope")
         if not allowed:
-            self._log("no_allowed_files", "fail",
-                      reason="No allowed files found in packet")
+            self._log("no_allowed_files", "fail", reason="No allowed files found in packet")
             return False
 
         system_prompt = self._build_system_prompt()
-
         user_message = packet
         if error_context:
-            user_message = (
-                f"## PREVIOUS ATTEMPT FAILED\n"
-                f"Your previous code failed with this error:\n"
-                f"```\n{error_context}\n```\n"
-                f"Please fix the code strictly within Allowed Write Scope.\n\n"
-                f"{packet}"
-            )
+            user_message = f"## PREVIOUS ATTEMPT FAILED\nYour previous code failed with this error:\n```\n{error_context}\n```\nPlease fix the code strictly within Allowed Write Scope.\n\n{packet}"
 
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message},
-        ]
-
+        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_message}]
         self._log("llm_api_call_started", "ok", model=self.model)
 
         try:
@@ -173,20 +154,22 @@ class LLMWorker(GraceWorker):
             self._log("llm_api_call_failed", "fail", reason=str(e))
             return False
 
-        self._log("llm_api_call_finished", "ok",
-                  usage=str(response.get("usage", {})))
+        self._log("llm_api_call_finished", "ok", usage=str(response.get("usage", {})))
 
         try:
             llm_output = response["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError):
-            self._log("llm_parse_failed", "fail",
-                      reason="Unexpected API response format")
+            self._log("llm_parse_failed", "fail", reason="Unexpected API response format")
             return False
 
         try:
             parsed = self._parse_llm_response(llm_output)
-        except (json.JSONDecodeError, ValueError) as e:
+        except ValueError as e:
             self._log("malformed_llm_response", "fail", reason=str(e))
+            return False
+
+        if not parsed.get("files_to_write"):
+            self._log("no_files_to_write", "fail", reason="LLM returned empty response")
             return False
 
         try:
@@ -200,4 +183,3 @@ class LLMWorker(GraceWorker):
 
         self._log("execution_finished", "ok")
         return True
-
