@@ -59,11 +59,12 @@ class GraceOrchestrator:
         self._wave_idx = 0
         return False
 
-    def _build_failure_packet(self, reason: str) -> str:
+    def _build_failure_packet(self, reason: str, details: str = "") -> str:
         wave = self.current_wave
         phase = self.current_phase
         wave_id = wave.id if wave else "N/A"
         phase_id = phase.id if phase else "N/A"
+        detail_block = f"\n\n## Details\n```\n{details}\n```" if details else ""
         return f"""# Orchestrator Failure Packet
 
 ## Status: FAILED
@@ -74,7 +75,7 @@ class GraceOrchestrator:
 
 ## Reason
 {reason}
-
+{detail_block}
 ## Action
 Orchestrator execution stopped. Manual intervention required.
 """
@@ -108,7 +109,7 @@ Orchestrator execution stopped. Manual intervention required.
                 raise
 
             if not worker_ok:
-                return {"status": "FAILED", "reason": "Worker task execution failed"}
+                return {"status": "FAILED", "reason": "Worker task execution failed", "details": "Worker returned False with no error context"}
 
             self._commit_workspace(self.workspace)
 
@@ -196,5 +197,6 @@ Orchestrator execution stopped. Manual intervention required.
             waves_completed=waves_completed,
             completed_wave_ids=completed_ids,
         )
+
 
 
