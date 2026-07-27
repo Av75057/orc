@@ -8,7 +8,7 @@ from src.grace_api.routes import GraceAPI
 
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
 }
 
@@ -44,6 +44,16 @@ class GraceHTTPHandler(BaseHTTPRequestHandler):
         query = self.path.split("?", 1)[1] if "?" in self.path else ""
         path = self.path.split("?", 1)[0]
         status, headers, body = api.dispatch("GET", path, query=query)
+        self._send(status, headers, body)
+
+    def do_DELETE(self) -> None:
+        api = self.__class__.api
+        if api is None:
+            self._send(500, {"Content-Type": "application/json"},
+                       b'{"error":"API not initialized"}')
+            return
+        path = self.path.split("?", 1)[0]
+        status, headers, body = api.dispatch("DELETE", path)
         self._send(status, headers, body)
 
     def do_POST(self) -> None:
@@ -83,3 +93,4 @@ if __name__ == "__main__":
     parser.add_argument("--base-dir", default=".")
     args = parser.parse_args()
     run_server(host=args.host, port=args.port, base_dir=args.base_dir)
+
