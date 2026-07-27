@@ -36,7 +36,7 @@ import logging
 from collections import defaultdict
 from typing import Callable
 
-from smart_home.models import Event
+from src.smart_home.models import Event
 
 logger = logging.getLogger(__name__)
 

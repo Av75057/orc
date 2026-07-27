@@ -53,9 +53,9 @@ END_MODULE_CONTRACT: M-LIGHTBULB
 """
 from __future__ import annotations
 
-from smart_home.event_bus import EventBus
-from smart_home.models import Device, Event
-from smart_home.sensors import MotionSensor, TemperatureSensor
+from src.smart_home.event_bus import EventBus
+from src.smart_home.models import Device, Event
+from src.smart_home.sensors import MotionSensor, TemperatureSensor
 
 
 class Thermostat(Device):

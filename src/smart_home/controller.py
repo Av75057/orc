@@ -26,9 +26,9 @@ END_MODULE_CONTRACT: M-CONTROLLER-SH
 """
 from __future__ import annotations
 
-from smart_home.actuators import LightBulb, Thermostat
-from smart_home.event_bus import EventBus
-from smart_home.sensors import MotionSensor, TemperatureSensor
+from src.smart_home.actuators import LightBulb, Thermostat
+from src.smart_home.event_bus import EventBus
+from src.smart_home.sensors import MotionSensor, TemperatureSensor
 
 
 class SmartHomeController:

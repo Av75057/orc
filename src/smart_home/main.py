@@ -32,7 +32,7 @@ import sys
 
 def main() -> None:
     """Run scenarios and print JSON."""
-    from smart_home.controller import SmartHomeController
+    from src.smart_home.controller import SmartHomeController
 
     controller = SmartHomeController()
     controller.simulate_cold_temp()

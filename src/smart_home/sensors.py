@@ -51,8 +51,8 @@ END_MODULE_CONTRACT: M-MOTIONSENSOR
 """
 from __future__ import annotations
 
-from smart_home.event_bus import EventBus
-from smart_home.models import Event
+from src.smart_home.event_bus import EventBus
+from src.smart_home.models import Event
 
 
 class TemperatureSensor:
