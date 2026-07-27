@@ -71,7 +71,6 @@ class LLMWorker(GraceWorker):
 
     def _call_api(self, messages: list) -> dict:
         body = {"model": self.model, "messages": messages, "temperature": 0.2, "max_tokens": 4096}
-        last_error = ""
         for attempt in range(MAX_API_RETRIES):
             try:
                 req = urllib.request.Request(
@@ -80,22 +79,25 @@ class LLMWorker(GraceWorker):
                     headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.api_key}"},
                     method="POST",
                 )
-                with urllib.request.urlopen(req, timeout=60) as resp:
+                with urllib.request.urlopen(req, timeout=90) as resp:
                     return json.loads(resp.read().decode("utf-8"))
             except urllib.error.HTTPError as e:
                 err_body = e.read().decode("utf-8", errors="replace")
-                if e.code in (429, 502, 503, 504):
-                    self._log("rate_limit_retry", "retry", attempt=attempt + 1, code=e.code)
-                    time.sleep(RATE_LIMIT_SLEEP)
-                    last_error = f"HTTP {e.code}"
+                if e.code in (429, 500, 502, 503, 504):
+                    wait = RATE_LIMIT_SLEEP * (attempt + 1)
+                    self._log("api_retry", "retry", attempt=attempt + 1, code=e.code, wait_s=wait)
+                    time.sleep(wait)
+                    if attempt < MAX_API_RETRIES - 1:
+                        continue
+                raise RuntimeError(f"LLM_API_HTTP_{e.code}: {err_body[:200]}")
+            except (urllib.error.URLError, TimeoutError, OSError) as e:
+                wait = RATE_LIMIT_SLEEP * (attempt + 1)
+                self._log("api_retry", "retry", attempt=attempt + 1, reason=str(e)[:100], wait_s=wait)
+                time.sleep(wait)
+                if attempt < MAX_API_RETRIES - 1:
                     continue
-                self._log("llm_api_call_failed", "fail", reason=f"HTTP {e.code}", details=err_body[:200])
-                raise
-            except Exception as e:
-                self._log("llm_api_call_failed", "fail", reason=str(e))
-                raise
-        self._log("rate_limit_exceeded", "fail", reason=last_error)
-        raise RuntimeError(f"LLM rate limit exceeded after {MAX_API_RETRIES} attempts")
+                raise RuntimeError(f"LLM_API_TIMEOUT: {e}")
+        raise RuntimeError("LLM_RATE_LIMIT_EXHAUSTED: Max API retries reached")
 
     def _extract_files_from_text(self, output: str) -> list:
         pattern = re.compile(r'===FILE:(.+?)===\n(.*?)===END===', re.DOTALL)
@@ -150,8 +152,11 @@ class LLMWorker(GraceWorker):
 
         try:
             response = self._call_api(messages)
-        except Exception as e:
-            self._log("llm_api_call_failed", "fail", reason=str(e))
+        except RuntimeError as e:
+            msg = str(e)
+            if "LLM_API_HTTP" in msg or "LLM_API_TIMEOUT" in msg:
+                raise  # Re-raise for orchestrator to handle with API retry
+            self._log("llm_api_call_failed", "fail", reason=msg)
             return False
 
         self._log("llm_api_call_finished", "ok", usage=str(response.get("usage", {})))
@@ -183,3 +188,4 @@ class LLMWorker(GraceWorker):
 
         self._log("execution_finished", "ok")
         return True
+

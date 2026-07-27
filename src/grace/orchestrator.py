@@ -91,31 +91,24 @@ Orchestrator execution stopped. Manual intervention required.
 
     def _process_wave(self, wave_id: str, phase_id: str) -> Optional[Dict[str, Any]]:
         packet = generate_controller_packet(self.plan, wave_id, workspace=self.workspace)
+        max_api_retries = 3
 
-        # Initial worker execution
-        worker_ok = self.worker.execute(packet)
-        if not worker_ok:
-            return {"status": "FAILED", "reason": "Worker task execution failed"}
+        for api_attempt in range(max_api_retries):
+            try:
+                # Initial worker execution
+                worker_ok = self.worker.execute(packet)
+            except RuntimeError as e:
+                msg = str(e)
+                if "LLM_API_HTTP" in msg or "LLM_API_TIMEOUT" in msg or "RATE_LIMIT" in msg:
+                    print(f"[ORCHESTRATOR] API error: {msg[:100]}. Retry {api_attempt + 1}/{max_api_retries}...",
+                          file=__import__("sys").stderr)
+                    if api_attempt < max_api_retries - 1:
+                        continue
+                    return {"status": "FAILED", "reason": f"Worker API failed after {max_api_retries} retries"}
+                raise
 
-        self._commit_workspace(self.workspace)
-
-        review = review_wave(self.current_wave, workspace=self.workspace)
-
-        if review["status"] == "PASSED":
-            return review
-
-        if review.get("reason") == "SCOPE_VIOLATION":
-            return review
-
-        # Self-healing: retry on VERIFICATION_FAILED
-        for attempt in range(1, MAX_RETRIES):
-            error_output = review.get("error_output", "")
-            print(f"[ORCHESTRATOR] VERIFICATION_FAILED. Repair attempt {attempt}/{MAX_RETRIES} for {wave_id}",
-                  file=__import__("sys").stderr)
-
-            repair_ok = self.worker.execute(packet, error_context=error_output)
-            if not repair_ok:
-                return {"status": "FAILED", "reason": "Worker repair execution failed"}
+            if not worker_ok:
+                return {"status": "FAILED", "reason": "Worker task execution failed"}
 
             self._commit_workspace(self.workspace)
 
@@ -127,7 +120,45 @@ Orchestrator execution stopped. Manual intervention required.
             if review.get("reason") == "SCOPE_VIOLATION":
                 return review
 
-        return review
+            # Self-healing: retry on VERIFICATION_FAILED
+            for attempt in range(1, MAX_RETRIES):
+                error_output = review.get("error_output", "")
+                print(f"[ORCHESTRATOR] VERIFICATION_FAILED. Repair attempt {attempt}/{MAX_RETRIES} for {wave_id}",
+                      file=__import__("sys").stderr)
+
+                try:
+                    repair_ok = self.worker.execute(packet, error_context=error_output)
+                except RuntimeError as e:
+                    msg = str(e)
+                    if "LLM_API" in msg or "RATE_LIMIT" in msg:
+                        print(f"[ORCHESTRATOR] API error during repair: {msg[:100]}. Retry from api loop...",
+                              file=__import__("sys").stderr)
+                        break  # Go back to api retry loop
+                    raise
+
+                if not repair_ok:
+                    return {"status": "FAILED", "reason": "Worker repair execution failed"}
+
+                self._commit_workspace(self.workspace)
+
+                review = review_wave(self.current_wave, workspace=self.workspace)
+
+                if review["status"] == "PASSED":
+                    return review
+
+                if review.get("reason") == "SCOPE_VIOLATION":
+                    return review
+
+            else:
+                # Repair loop exhausted
+                return review
+
+            # If we got here from a 'break' (API retry needed), continue the outer loop
+            print(f"[ORCHESTRATOR] API retry loop: restarting wave after API issue. ({api_attempt + 1}/{max_api_retries})",
+                  file=__import__("sys").stderr)
+            continue
+
+        return {"status": "FAILED", "reason": "MAX_RETRIES_EXCEEDED"}
 
     def run(self) -> OrchestratorResult:
         waves_completed = 0
@@ -165,4 +196,5 @@ Orchestrator execution stopped. Manual intervention required.
             waves_completed=waves_completed,
             completed_wave_ids=completed_ids,
         )
+
 
