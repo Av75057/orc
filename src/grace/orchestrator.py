@@ -1,3 +1,4 @@
+import os
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 
@@ -20,9 +21,11 @@ class OrchestratorResult:
 
 
 class GraceOrchestrator:
-    def __init__(self, plan: DevelopmentPlan, worker: Optional[GraceWorker] = None):
+    def __init__(self, plan: DevelopmentPlan, worker: Optional[GraceWorker] = None,
+                 workspace: Optional[str] = None):
         self.plan = plan
-        self.worker = worker or StubWorker()
+        self.worker = worker or StubWorker(workspace=workspace)
+        self.workspace = workspace or os.getcwd()
         self._phase_idx: int = 0
         self._wave_idx: int = 0
 
@@ -39,17 +42,6 @@ class GraceOrchestrator:
             return self.plan.phases[self._phase_idx]
         except IndexError:
             return None
-
-    @property
-    def has_next(self) -> bool:
-        if not self.plan.phases:
-            return False
-        phase = self.plan.phases[self._phase_idx]
-        if self._wave_idx + 1 < len(phase.waves):
-            return True
-        if self._phase_idx + 1 < len(self.plan.phases):
-            return True if self.plan.phases[self._phase_idx + 1].waves else False
-        return False
 
     def _advance(self) -> bool:
         phase = self.plan.phases[self._phase_idx]
@@ -110,7 +102,7 @@ Orchestrator execution stopped. Manual intervention required.
                     ),
                 )
 
-            review = review_wave(wave)
+            review = review_wave(wave, workspace=self.workspace)
             if review["status"] != "PASSED":
                 reason = review.get("reason", "Unknown gate failure")
                 return OrchestratorResult(

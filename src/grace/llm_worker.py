@@ -5,12 +5,13 @@ import sys
 import urllib.request
 import urllib.error
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from src.grace.worker import GraceWorker
 
 
 class LLMWorker(GraceWorker):
-    def __init__(self):
+    def __init__(self, workspace: Optional[str] = None):
+        super().__init__(workspace)
         self.api_key = os.environ.get("OPENAI_API_KEY", "")
         self.model = os.environ.get("LLM_MODEL", "gpt-4o-mini")
         self.api_url = os.environ.get("LLM_API_URL", "https://api.openai.com/v1/chat/completions")
@@ -42,11 +43,9 @@ class LLMWorker(GraceWorker):
         return items
 
     def execute(self, packet: str) -> bool:
-        print(f"[LLMWorker] Using model={self.model}", file=sys.stderr)
+        print(f"[LLMWorker] Using model={self.model}, workspace={self.workspace}", file=sys.stderr)
 
         allowed = self._parse_scope(packet, "## Allowed Write Scope")
-        frozen = self._parse_scope(packet, "## Frozen / Out Of Scope")
-        verif = self._section_lines(packet, "## Verification")
 
         if not allowed:
             print("[LLMWorker] No allowed files found", file=sys.stderr)
@@ -58,12 +57,7 @@ class LLMWorker(GraceWorker):
 <complete code here>
 ===END===
 
-For test files:
-===FILE:tests/test_something.py===
-<test code>
-===END===
-
-Write complete, working code. No markdown wrappers. Use the exact file paths from the Allowed Write Scope."""
+Write complete, working code. Use the exact file paths from the Allowed Write Scope."""
 
         body = {
             "model": self.model,
@@ -109,11 +103,11 @@ Write complete, working code. No markdown wrappers. Use the exact file paths fro
             print("[LLMWorker] No code blocks found in response", file=sys.stderr)
             return False
 
-        for filepath, code in files:
-            p = Path(filepath)
-            p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text(code, encoding="utf-8")
-            print(f"[LLMWorker] Wrote {p} ({len(code)} bytes)", file=sys.stderr)
+        for rel_path, code in files:
+            abs_path = Path(self.workspace) / rel_path
+            abs_path.parent.mkdir(parents=True, exist_ok=True)
+            abs_path.write_text(code, encoding="utf-8")
+            print(f"[LLMWorker] Wrote {abs_path} ({len(code)} bytes)", file=sys.stderr)
 
         return True
 
@@ -133,3 +127,4 @@ Write complete, working code. No markdown wrappers. Use the exact file paths fro
         if len(matches) == len(allowed):
             return [(allowed[i], code.strip()) for i, code in enumerate(matches)]
         return []
+

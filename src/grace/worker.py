@@ -1,8 +1,12 @@
 import abc
+import os
 from typing import Optional
 
 
 class GraceWorker(abc.ABC):
+    def __init__(self, workspace: Optional[str] = None):
+        self.workspace = workspace or os.getcwd()
+
     @abc.abstractmethod
     def execute(self, packet: str) -> bool:
         ...
@@ -15,9 +19,10 @@ class GraceWorker(abc.ABC):
 
 class StubWorker(GraceWorker):
     def execute(self, packet: str) -> bool:
-        print("[WORKER] StubWorker: nothing to execute")
+        print(f"[WORKER] StubWorker (workspace={self.workspace}): nothing to execute")
         return True
 
     @property
     def name(self) -> str:
         return "StubWorker"
+

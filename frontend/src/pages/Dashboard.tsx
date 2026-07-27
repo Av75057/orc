@@ -9,6 +9,7 @@ const LS_OPENAI_KEY = "grace_openai_api_key";
 const LS_GITHUB_TOKEN = "grace_github_token";
 const LS_LLM_MODEL = "grace_llm_model";
 const LS_LLM_API_URL = "grace_llm_api_url";
+const LS_WORKSPACE = "grace_workspace";
 
 export default function Dashboard() {
   const [health, setHealth] = useState<HealthStatus | null>(null);
@@ -45,11 +46,13 @@ export default function Dashboard() {
       const githubToken = localStorage.getItem(LS_GITHUB_TOKEN) || undefined;
       const llmModel = localStorage.getItem(LS_LLM_MODEL) || undefined;
       const llmApiUrl = localStorage.getItem(LS_LLM_API_URL) || undefined;
+      const workspace = localStorage.getItem(LS_WORKSPACE) || undefined;
       const result = await runOrchestrator({
         openai_api_key: openaiKey,
         github_token: githubToken,
         llm_model: llmModel,
         llm_api_url: llmApiUrl,
+        workspace: workspace,
       });
       setRunResult(`Exit code: ${result.exit_code}`);
       if (result.exit_code !== 0 && result.stderr) {

@@ -38,6 +38,7 @@ export interface RunOptions {
   github_token?: string;
   llm_model?: string;
   llm_api_url?: string;
+  workspace?: string;
 }
 
 const BASE_URL = (import.meta as any).env?.VITE_API_URL || "";
@@ -144,5 +145,4 @@ export function parseLogs(
       }
     });
 }
-
 

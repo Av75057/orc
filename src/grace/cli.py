@@ -16,27 +16,29 @@ def create_parser() -> argparse.ArgumentParser:
         description="GRACE Orchestrator",
     )
     parser.add_argument("plan", type=str, help="Path to development-plan.xml")
-    parser.add_argument("--worker", type=str, help="Worker command (legacy)")
+    parser.add_argument("--workspace", type=str, default=None,
+                        help="Target project directory (default: current dir)")
     return parser
 
 
-def _build_worker() -> GraceWorker:
+def _build_worker(workspace: str) -> GraceWorker:
     if os.environ.get("OPENAI_API_KEY"):
         try:
             from src.grace.llm_worker import LLMWorker
-            worker = LLMWorker()
+            worker = LLMWorker(workspace=workspace)
             print(f"[CLI] OPENAI_API_KEY found. Initializing {worker.name}.", file=sys.stderr)
             return worker
         except ImportError as e:
             print(f"[CLI] LLMWorker import failed: {e}", file=sys.stderr)
     print("[CLI] No LLM API key. Using stub worker.", file=sys.stderr)
-    return StubWorker()
+    return StubWorker(workspace=workspace)
 
 
 def main(argv=None) -> int:
     parser = create_parser()
     args = parser.parse_args(argv)
 
+    workspace = args.workspace or os.getcwd()
     log = GraceLogger()
 
     try:
@@ -52,8 +54,8 @@ def main(argv=None) -> int:
         trace_id="TRACE-CLI-001", scenario_id="SCN-BOOT",
     )
 
-    worker = _build_worker()
-    orchestrator = GraceOrchestrator(plan, worker=worker)
+    worker = _build_worker(workspace)
+    orchestrator = GraceOrchestrator(plan, worker=worker, workspace=workspace)
     result = orchestrator.run()
 
     state = {

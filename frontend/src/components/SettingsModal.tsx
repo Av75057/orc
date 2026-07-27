@@ -4,6 +4,7 @@ const LS_OPENAI_KEY = "grace_openai_api_key";
 const LS_GITHUB_TOKEN = "grace_github_token";
 const LS_LLM_MODEL = "grace_llm_model";
 const LS_LLM_API_URL = "grace_llm_api_url";
+const LS_WORKSPACE = "grace_workspace";
 
 interface Props {
   onClose: () => void;
@@ -14,12 +15,14 @@ export default function SettingsModal({ onClose }: Props) {
   const [githubToken, setGithubToken] = useState("");
   const [llmModel, setLlmModel] = useState("gpt-4o-mini");
   const [llmApiUrl, setLlmApiUrl] = useState("https://api.openai.com/v1/chat/completions");
+  const [workspace, setWorkspace] = useState("");
 
   useEffect(() => {
     setOpenaiKey(localStorage.getItem(LS_OPENAI_KEY) || "");
     setGithubToken(localStorage.getItem(LS_GITHUB_TOKEN) || "");
     setLlmModel(localStorage.getItem(LS_LLM_MODEL) || "gpt-4o-mini");
     setLlmApiUrl(localStorage.getItem(LS_LLM_API_URL) || "https://api.openai.com/v1/chat/completions");
+    setWorkspace(localStorage.getItem(LS_WORKSPACE) || "");
   }, []);
 
   const handleSave = () => {
@@ -31,6 +34,8 @@ export default function SettingsModal({ onClose }: Props) {
     else localStorage.removeItem(LS_LLM_MODEL);
     if (llmApiUrl) localStorage.setItem(LS_LLM_API_URL, llmApiUrl);
     else localStorage.removeItem(LS_LLM_API_URL);
+    if (workspace) localStorage.setItem(LS_WORKSPACE, workspace);
+    else localStorage.removeItem(LS_WORKSPACE);
     onClose();
   };
 
@@ -39,10 +44,12 @@ export default function SettingsModal({ onClose }: Props) {
     localStorage.removeItem(LS_GITHUB_TOKEN);
     localStorage.removeItem(LS_LLM_MODEL);
     localStorage.removeItem(LS_LLM_API_URL);
+    localStorage.removeItem(LS_WORKSPACE);
     setOpenaiKey("");
     setGithubToken("");
     setLlmModel("gpt-4o-mini");
     setLlmApiUrl("https://api.openai.com/v1/chat/completions");
+    setWorkspace("");
   };
 
   return (
@@ -61,6 +68,10 @@ export default function SettingsModal({ onClose }: Props) {
         <label className="block text-sm font-medium text-gray-700 mb-1">LLM API URL</label>
         <input type="text" value={llmApiUrl} onChange={(e) => setLlmApiUrl(e.target.value)}
           placeholder="https://api.openai.com/v1/chat/completions" className="w-full border rounded px-3 py-2 text-sm mb-4" />
+
+        <label className="block text-sm font-medium text-gray-700 mb-1">Target Workspace Path</label>
+        <input type="text" value={workspace} onChange={(e) => setWorkspace(e.target.value)}
+          placeholder="/root/my_project" className="w-full border rounded px-3 py-2 text-sm mb-4" />
 
         <label className="block text-sm font-medium text-gray-700 mb-1">GitHub Token</label>
         <input type="password" value={githubToken} onChange={(e) => setGithubToken(e.target.value)}

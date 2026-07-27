@@ -79,6 +79,7 @@ class GraceAPI:
     def handle_artifact_create(self, body: Optional[bytes]) -> tuple:
         if not body:
             return _error("Request body is required")
+        data = {}
         try:
             data = json.loads(body.decode("utf-8"))
         except (json.JSONDecodeError, UnicodeDecodeError):
@@ -189,6 +190,8 @@ class GraceAPI:
             cmd.extend(["--worker", worker_cmd])
         if state_path:
             cmd.extend(["--state", state_path])
+        if data.get("workspace"):
+            cmd.extend(["--workspace", data["workspace"]])
         env = {**os.environ, **extra_env}
         try:
             proc = subprocess.Popen(cmd, cwd=str(self._base),
@@ -241,4 +244,6 @@ class GraceAPI:
         if method == "DELETE" and path == "/api/state":
             return self._delete_state()
         return _json_response({"error": "Not found"}, 404)
+
+
 
