@@ -1,40 +1,89 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <DevelopmentPlan>
-  <Phase id="PHASE-CALC">
-    <Goal>Implement and test a basic calculator module.</Goal>
+  <Phase id="PHASE-USER-MGR">
+    <Goal>Build a modular User Manager application with auth and logging.</Goal>
 
-    <Wave id="WAVE-CALC-1">
-      <Goal>Create core arithmetic functions (add, subtract, multiply, divide) and unit tests.</Goal>
-
-      <ModuleRef id="M-CALC" />
-
+    <!-- WAVE 1: Foundation -->
+    <Wave id="WAVE-DB-1">
+      <Goal>Create the User model and a simple in-memory database to store users. Must include password hashing simulation.</Goal>
+      <ModuleRef id="M-DB" />
       <AllowedWriteScope>
-        <File>src/calculator.py</File>
-        <File>tests/test_calculator.py</File>
+        <File>src/database.py</File>
+        <File>tests/test_database.py</File>
       </AllowedWriteScope>
-
       <FrozenScope>
         <File>src/grace/</File>
-        <File>src/grace_api/</File>
         <File>frontend/</File>
         <File>docs/</File>
-        <File>infra/</File>
       </FrozenScope>
-
       <Verification>
-        <Command>python -m pytest tests/test_calculator.py -v</Command>
+        <Command>python -m pytest tests/test_database.py -v</Command>
       </Verification>
-
       <AcceptanceCriteria>
-        <Criterion>Module src/calculator.py exists and contains add, subtract, multiply, divide functions.</Criterion>
-        <Criterion>Division by zero raises a ValueError.</Criterion>
-        <Criterion>All pytest tests pass successfully.</Criterion>
-        <Criterion>No files outside AllowedWriteScope were modified.</Criterion>
+        <Criterion>database.py contains a User dataclass/class and a Database class.</Criterion>
+        <Criterion>Database supports add_user and get_user methods.</Criterion>
+        <Criterion>Tests pass successfully.</Criterion>
       </AcceptanceCriteria>
+    </Wave>
 
+    <!-- WAVE 2: Parallel Multi-Agent Execution -->
+    <Wave id="WAVE-FEATURES-1">
+      <Goal>Develop authentication and logging modules in parallel.</Goal>
+      
+      <Slice id="SLICE-AUTH">
+        <Goal>Create auth.py providing register and login functions using the database from WAVE-DB-1.</Goal>
+        <ModuleRef id="M-AUTH" />
+        <AllowedWriteScope>
+          <File>src/auth.py</File>
+          <File>tests/test_auth.py</File>
+        </AllowedWriteScope>
+        <Verification>
+          <Command>python -m pytest tests/test_auth.py -v</Command>
+        </Verification>
+        <AcceptanceCriteria>
+          <Criterion>auth.py imports database.py.</Criterion>
+          <Criterion>register function creates a user, login validates credentials.</Criterion>
+        </AcceptanceCriteria>
+      </Slice>
+
+      <Slice id="SLICE-LOGGER">
+        <Goal>Create logger.py providing a simple audit logger that writes to stdout/memory.</Goal>
+        <ModuleRef id="M-LOGGER" />
+        <AllowedWriteScope>
+          <File>src/logger.py</File>
+          <File>tests/test_logger.py</File>
+        </AllowedWriteScope>
+        <Verification>
+          <Command>python -m pytest tests/test_logger.py -v</Command>
+        </Verification>
+        <AcceptanceCriteria>
+          <Criterion>logger.py provides a Logger class with a log(message) method.</Criterion>
+        </AcceptanceCriteria>
+      </Slice>
+    </Wave>
+
+    <!-- WAVE 3: Integration -->
+    <Wave id="WAVE-INTEGRATION-1">
+      <Goal>Integrate all modules into a main application entry point and write an end-to-end test.</Goal>
+      <ModuleRef id="M-APP" />
+      <AllowedWriteScope>
+        <File>src/app.py</File>
+        <File>tests/test_app.py</File>
+      </AllowedWriteScope>
+      <FrozenScope>
+        <File>src/database.py</File>
+        <File>src/auth.py</File>
+        <File>src/logger.py</File>
+      </FrozenScope>
+      <Verification>
+        <Command>python -m pytest tests/test_app.py -v</Command>
+      </Verification>
+      <AcceptanceCriteria>
+        <Criterion>app.py imports database, auth, and logger.</Criterion>
+        <Criterion>End-to-end test registers a user, logs them in, and checks audit logs.</Criterion>
+      </AcceptanceCriteria>
       <DeferredWork>
-        <Item>Add advanced operations (power, square root) in a future wave.</Item>
-        <Item>Add CLI interface for the calculator later.</Item>
+        <Item>Add REST API endpoints in a future phase.</Item>
       </DeferredWork>
     </Wave>
   </Phase>
