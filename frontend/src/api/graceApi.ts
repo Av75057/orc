@@ -126,8 +126,11 @@ export async function getEvidenceFile(path: string): Promise<string> {
   }
 }
 
-export async function resetState(): Promise<void> {
-  await fetch(`${BASE_URL}/api/state`, { method: "DELETE" });
+export async function resetState(workspace?: string): Promise<void> {
+  const url = workspace
+    ? `${BASE_URL}/api/state?workspace=${encodeURIComponent(workspace)}`
+    : `${BASE_URL}/api/state`;
+  await fetch(url, { method: "DELETE" });
 }
 
 export async function runOrchestrator(options: RunOptions = {}): Promise<any> {
@@ -161,5 +164,6 @@ export function parseLogs(
       }
     });
 }
+
 
 

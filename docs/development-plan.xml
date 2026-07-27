@@ -1,89 +1,130 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <DevelopmentPlan>
-  <Phase id="PHASE-INVENTORY">
-    <Goal>Build an Inventory Management System with parallel operations and analytics.</Goal>
+  <Phase id="PHASE-SMARTHOME">
+    <Goal>Build an Event-Driven Smart Home Automation System.</Goal>
 
-    <!-- WAVE 1: Foundation -->
+    <!-- WAVE 1: Event Bus & Models -->
     <Wave id="WAVE-CORE-1">
-      <Goal>Create Product dataclass and Inventory class to store products.</Goal>
+      <Goal>Create Device dataclass and an in-memory EventBus for pub/sub.</Goal>
       <ModuleRef id="M-CORE" />
       <AllowedWriteScope>
         <File>src/models.py</File>
-        <File>src/inventory.py</File>
-        <File>tests/test_inventory.py</File>
+        <File>src/event_bus.py</File>
+        <File>tests/test_event_bus.py</File>
       </AllowedWriteScope>
       <Verification>
-        <Command>python -m pytest tests/test_inventory.py -v</Command>
+        <Command>python -m pytest tests/test_event_bus.py -v</Command>
       </Verification>
       <AcceptanceCriteria>
-        <Criterion>models.py defines Product with id, name, price, quantity.</Criterion>
-        <Criterion>inventory.py defines Inventory with add_product(product) and get_product(id).</Criterion>
+        <Criterion>models.py defines Device with id, name, and is_on boolean state.</Criterion>
+        <Criterion>event_bus.py defines EventBus with subscribe(event_name, callback) and publish(event_name, data).</Criterion>
+        <Criterion>publish triggers all subscribed callbacks with the data.</Criterion>
       </AcceptanceCriteria>
     </Wave>
 
-    <!-- WAVE 2: Parallel Operations -->
-    <Wave id="WAVE-OPS-2">
-      <Goal>Develop SalesManager and RestockManager in parallel.</Goal>
+    <!-- WAVE 2: Parallel Sensors (Publishers) -->
+    <Wave id="WAVE-SENSORS-2">
+      <Goal>Develop TemperatureSensor and MotionSensor that publish events to EventBus.</Goal>
       
-      <Slice id="SLICE-SALES">
-        <Goal>Create sales.py with SalesManager class. It takes Inventory, and has sell(product_id, quantity) which decreases product quantity.</Goal>
-        <ModuleRef id="M-SALES" />
+      <Slice id="SLICE-TEMP">
+        <Goal>Create temp_sensor.py with TemperatureSensor class. It reads temp and publishes 'temp_change'.</Goal>
+        <ModuleRef id="M-TEMP" />
         <AllowedWriteScope>
-          <File>src/sales.py</File>
-          <File>tests/test_sales.py</File>
+          <File>src/temp_sensor.py</File>
+          <File>tests/test_temp_sensor.py</File>
         </AllowedWriteScope>
         <Verification>
-          <Command>python -m pytest tests/test_sales.py -v</Command>
+          <Command>python -m pytest tests/test_temp_sensor.py -v</Command>
         </Verification>
         <AcceptanceCriteria>
-          <Criterion>sales.py imports Inventory and Product.</Criterion>
-          <Criterion>sell() method reduces quantity in Inventory.</Criterion>
+          <Criterion>TemperatureSensor takes EventBus in constructor.</Criterion>
+          <Criterion>read(temp) method publishes 'temp_change' event with temp value.</Criterion>
         </AcceptanceCriteria>
       </Slice>
 
-      <Slice id="SLICE-RESTOCK">
-        <Goal>Create restock.py with RestockManager class. It takes Inventory, and has restock(product_id, quantity) which increases product quantity.</Goal>
-        <ModuleRef id="M-RESTOCK" />
+      <Slice id="SLICE-MOTION">
+        <Goal>Create motion_sensor.py with MotionSensor class. It detects motion and publishes 'motion_detected'.</Goal>
+        <ModuleRef id="M-MOTION" />
         <AllowedWriteScope>
-          <File>src/restock.py</File>
-          <File>tests/test_restock.py</File>
+          <File>src/motion_sensor.py</File>
+          <File>tests/test_motion_sensor.py</File>
         </AllowedWriteScope>
         <Verification>
-          <Command>python -m pytest tests/test_restock.py -v</Command>
+          <Command>python -m pytest tests/test_motion_sensor.py -v</Command>
         </Verification>
         <AcceptanceCriteria>
-          <Criterion>restock.py imports Inventory and Product.</Criterion>
-          <Criterion>restock() method increases quantity in Inventory.</Criterion>
+          <Criterion>MotionSensor takes EventBus in constructor.</Criterion>
+          <Criterion>detect() method publishes 'motion_detected' event.</Criterion>
         </AcceptanceCriteria>
       </Slice>
     </Wave>
 
-    <!-- WAVE 3: Analytics Engine (Deep Context Injection) -->
-    <Wave id="WAVE-ANALYTICS-3">
-      <Goal>Create AnalyticsEngine that generates a report of total inventory value and stock levels.</Goal>
-      <ModuleRef id="M-ANALYTICS" />
+    <!-- WAVE 3: Parallel Actuators (Subscribers) -->
+    <Wave id="WAVE-ACTUATORS-3">
+      <Goal>Develop Thermostat and LightBulb that subscribe to events and change state.</Goal>
+      
+      <Slice id="SLICE-THERMO">
+        <Goal>Create thermostat.py. Subscribes to 'temp_change'. If temp < 20, turns on heating (is_on=True).</Goal>
+        <ModuleRef id="M-THERMO" />
+        <AllowedWriteScope>
+          <File>src/thermostat.py</File>
+          <File>tests/test_thermostat.py</File>
+        </AllowedWriteScope>
+        <Verification>
+          <Command>python -m pytest tests/test_thermostat.py -v</Command>
+        </Verification>
+        <AcceptanceCriteria>
+          <Criterion>Thermostat subscribes to 'temp_change' on initialization.</Criterion>
+          <Criterion>If event data temp < 20, device is_on becomes True.</Criterion>
+        </AcceptanceCriteria>
+      </Slice>
+
+      <Slice id="SLICE-LIGHT">
+        <Goal>Create light_bulb.py. Subscribes to 'motion_detected'. Turns on light (is_on=True) when motion occurs.</Goal>
+        <ModuleRef id="M-LIGHT" />
+        <AllowedWriteScope>
+          <File>src/light_bulb.py</File>
+          <File>tests/test_light_bulb.py</File>
+        </AllowedWriteScope>
+        <Verification>
+          <Command>python -m pytest tests/test_light_bulb.py -v</Command>
+        </Verification>
+        <AcceptanceCriteria>
+          <Criterion>LightBulb subscribes to 'motion_detected' on initialization.</Criterion>
+          <Criterion>When motion detected, device is_on becomes True.</Criterion>
+        </AcceptanceCriteria>
+      </Slice>
+    </Wave>
+
+    <!-- WAVE 4: Smart Home Controller (Deep Context Injection) -->
+    <Wave id="WAVE-CTRL-4">
+      <Goal>Create SmartHomeHub that initializes bus, sensors, and actuators, and runs a simulation tick.</Goal>
+      <ModuleRef id="M-CTRL" />
       <AllowedWriteScope>
-        <File>src/analytics.py</File>
-        <File>tests/test_analytics.py</File>
+        <File>src/controller.py</File>
+        <File>tests/test_controller.py</File>
       </AllowedWriteScope>
       <FrozenScope>
         <File>src/models.py</File>
-        <File>src/inventory.py</File>
-        <File>src/sales.py</File>
-        <File>src/restock.py</File>
+        <File>src/event_bus.py</File>
+        <File>src/temp_sensor.py</File>
+        <File>src/motion_sensor.py</File>
+        <File>src/thermostat.py</File>
+        <File>src/light_bulb.py</File>
       </FrozenScope>
       <Verification>
-        <Command>python -m pytest tests/test_analytics.py -v</Command>
+        <Command>python -m pytest tests/test_controller.py -v</Command>
       </Verification>
       <AcceptanceCriteria>
-        <Criterion>analytics.py imports Inventory.</Criterion>
-        <Criterion>generate_report() returns a dict with 'total_value' (sum of price*quantity) and 'total_items'.</Criterion>
+        <Criterion>controller.py imports EventBus, all sensors, and all actuators.</Criterion>
+        <Criterion>SmartHomeHub has simulate_motion() which triggers motion sensor and results in LightBulb turning on.</Criterion>
+        <Criterion>SmartHomeHub has simulate_cold_temp() which triggers temp sensor and results in Thermostat turning on.</Criterion>
       </AcceptanceCriteria>
     </Wave>
 
-    <!-- WAVE 4: Application -->
-    <Wave id="WAVE-APP-4">
-      <Goal>Create main.py that initializes inventory, runs sales/restock, and prints analytics report as JSON.</Goal>
+    <!-- WAVE 5: Application -->
+    <Wave id="WAVE-APP-5">
+      <Goal>Create main.py that runs a simulation and outputs device states as JSON.</Goal>
       <ModuleRef id="M-APP" />
       <AllowedWriteScope>
         <File>src/main.py</File>
@@ -91,16 +132,18 @@
       </AllowedWriteScope>
       <FrozenScope>
         <File>src/models.py</File>
-        <File>src/inventory.py</File>
-        <File>src/sales.py</File>
-        <File>src/restock.py</File>
-        <File>src/analytics.py</File>
+        <File>src/event_bus.py</File>
+        <File>src/temp_sensor.py</File>
+        <File>src/motion_sensor.py</File>
+        <File>src/thermostat.py</File>
+        <File>src/light_bulb.py</File>
+        <File>src/controller.py</File>
       </FrozenScope>
       <Verification>
         <Command>python -m pytest tests/test_main.py -v</Command>
       </Verification>
       <AcceptanceCriteria>
-        <Criterion>main.py imports all modules and outputs valid JSON report.</Criterion>
+        <Criterion>main.py imports SmartHomeHub, runs simulations, and prints valid JSON with final device states.</Criterion>
       </AcceptanceCriteria>
     </Wave>
   </Phase>

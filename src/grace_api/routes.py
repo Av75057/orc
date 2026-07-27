@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import urlparse, parse_qs
 from typing import Any, Optional
 from urllib.parse import urlparse, parse_qs
 
@@ -217,11 +218,14 @@ class GraceAPI:
         except Exception:
             return _json_response({"error": "Unknown error"}, 500)
 
-    def _delete_state(self) -> tuple:
-        state_path = self._abs("grace_state.json")
+    def _delete_state(self, workspace: str = "") -> tuple:
+        paths = [self._abs("grace_state.json")]
+        if workspace:
+            paths.append(Path(workspace) / "grace_state.json")
         try:
-            if state_path.exists():
-                state_path.unlink()
+            for p in paths:
+                if p.exists():
+                    p.unlink()
             return _json_response({"status": "state_reset"})
         except OSError as e:
             return _json_response({"error": f"Cannot delete state: {e}"}, 500)
@@ -248,8 +252,11 @@ class GraceAPI:
         if method == "POST" and path == "/api/run":
             return self.handle_run(body)
         if method == "DELETE" and path == "/api/state":
-            return self._delete_state()
+            params = parse_qs(urlparse(f"?{query}").query) if query else {}
+            ws = params.get("workspace", [""])[0]
+            return self._delete_state(ws)
         return _json_response({"error": "Not found"}, 404)
+
 
 
 

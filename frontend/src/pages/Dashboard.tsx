@@ -40,7 +40,7 @@ export default function Dashboard() {
   const handleReset = async () => {
     if (!confirm("Are you sure you want to reset the state?")) return;
     try {
-      await resetState();
+      await resetState(localStorage.getItem(LS_WORKSPACE) || undefined);
       loadData();
     } catch (e: any) {
       setError(e.message);
@@ -159,5 +159,6 @@ function StatCard({ title, value }: { title: string; value: string }) {
     </div>
   );
 }
+
 
 
