@@ -1,4 +1,5 @@
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -42,6 +43,15 @@ def main(argv=None) -> int:
 
     orchestrator = GraceOrchestrator(plan)
     result = orchestrator.run()
+
+    state = {
+        "completed_waves": result.completed_wave_ids,
+        "escalation": None if result.status == "SUCCESS" else {
+            "reason": result.reason or "Unknown",
+            "details": result.failure_packet or "",
+        },
+    }
+    Path("grace_state.json").write_text(json.dumps(state, indent=2))
 
     log.log(
         "M-CLI", "main", "ORCHESTRATOR_RUN",

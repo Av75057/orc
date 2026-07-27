@@ -14,6 +14,7 @@ class OrchestratorResult:
     wave_id: str = ""
     reason: Optional[str] = None
     waves_completed: int = 0
+    completed_wave_ids: List[str] = field(default_factory=list)
     failure_packet: Optional[str] = None
 
 
@@ -86,6 +87,7 @@ Orchestrator execution stopped. Manual intervention required.
 
     def run(self) -> OrchestratorResult:
         waves_completed = 0
+        completed_ids: List[str] = []
 
         while self.current_wave is not None:
             wave = self.current_wave
@@ -103,6 +105,7 @@ Orchestrator execution stopped. Manual intervention required.
                     wave_id=wave_id,
                     reason="Worker task execution failed",
                     waves_completed=waves_completed,
+                    completed_wave_ids=completed_ids,
                     failure_packet=self._build_failure_packet(
                         "Worker task execution failed"
                     ),
@@ -117,9 +120,11 @@ Orchestrator execution stopped. Manual intervention required.
                     wave_id=wave_id,
                     reason=reason,
                     waves_completed=waves_completed,
+                    completed_wave_ids=completed_ids,
                     failure_packet=self._build_failure_packet(reason),
                 )
 
+            completed_ids.append(wave_id)
             waves_completed += 1
 
             if not self._advance():
@@ -129,4 +134,5 @@ Orchestrator execution stopped. Manual intervention required.
             status="SUCCESS",
             phase_id=self.plan.phases[0].id if self.plan.phases else "",
             waves_completed=waves_completed,
+            completed_wave_ids=completed_ids,
         )
