@@ -19,6 +19,8 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument("plan", type=str, help="Path to development-plan.xml")
     parser.add_argument("--workspace", type=str, default=None,
                         help="Target project directory (default: current dir)")
+    parser.add_argument("--dry-run", action="store_true", default=False,
+                        help="Generate controller packets without executing")
     return parser
 
 
@@ -105,5 +107,6 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
 
 
