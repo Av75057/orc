@@ -1,4 +1,5 @@
 import os
+import subprocess
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 
@@ -6,9 +7,9 @@ from src.grace.models import DevelopmentPlan, Wave, Phase
 from src.grace.artifact_loader import load_development_plan
 from src.grace.controller import generate_controller_packet
 from src.grace.reviewer import review_wave
-import subprocess
-
 from src.grace.worker import GraceWorker, StubWorker
+
+MAX_RETRIES = 3
 
 
 @dataclass
@@ -88,12 +89,45 @@ Orchestrator execution stopped. Manual intervention required.
             capture_output=True, text=True, check=False, cwd=ws,
         )
 
-    def _save_evidence(self, wave_id: str, stdout_text: str):
-        import os as _os
-        evidence_dir = Path(_os.getcwd()) / "evidence" / wave_id
-        evidence_dir.mkdir(parents=True, exist_ok=True)
-        (evidence_dir / "worker_stdout.txt").write_text(stdout_text)
-        (evidence_dir / "controller_packet.md").write_text(self._last_packet)
+    def _process_wave(self, wave_id: str, phase_id: str) -> Optional[Dict[str, Any]]:
+        packet = generate_controller_packet(self.plan, wave_id, workspace=self.workspace)
+
+        # Initial worker execution
+        worker_ok = self.worker.execute(packet)
+        if not worker_ok:
+            return {"status": "FAILED", "reason": "Worker task execution failed"}
+
+        self._commit_workspace(self.workspace)
+
+        review = review_wave(self.current_wave, workspace=self.workspace)
+
+        if review["status"] == "PASSED":
+            return review
+
+        if review.get("reason") == "SCOPE_VIOLATION":
+            return review
+
+        # Self-healing: retry on VERIFICATION_FAILED
+        for attempt in range(1, MAX_RETRIES):
+            error_output = review.get("error_output", "")
+            print(f"[ORCHESTRATOR] VERIFICATION_FAILED. Repair attempt {attempt}/{MAX_RETRIES} for {wave_id}",
+                  file=__import__("sys").stderr)
+
+            repair_ok = self.worker.execute(packet, error_context=error_output)
+            if not repair_ok:
+                return {"status": "FAILED", "reason": "Worker repair execution failed"}
+
+            self._commit_workspace(self.workspace)
+
+            review = review_wave(self.current_wave, workspace=self.workspace)
+
+            if review["status"] == "PASSED":
+                return review
+
+            if review.get("reason") == "SCOPE_VIOLATION":
+                return review
+
+        return review
 
     def run(self) -> OrchestratorResult:
         waves_completed = 0
@@ -105,38 +139,10 @@ Orchestrator execution stopped. Manual intervention required.
             wave_id = wave.id
             phase_id = phase.id if phase else ""
 
-            packet = generate_controller_packet(self.plan, wave_id, workspace=self.workspace)
-            self._last_packet = packet
+            result = self._process_wave(wave_id, phase_id)
 
-            worker_ok = self.worker.execute(packet)
-            if not worker_ok:
-                return OrchestratorResult(
-                    status="FAILED",
-                    phase_id=phase_id,
-                    wave_id=wave_id,
-                    reason="Worker task execution failed",
-                    waves_completed=waves_completed,
-                    completed_wave_ids=completed_ids,
-                    failure_packet=self._build_failure_packet(
-                        "Worker task execution failed"
-                    ),
-                )
-
-            self._commit_workspace(self.workspace)
-
-            # Save evidence from captured stdout
-            import io as _io, os as _os
-            try:
-                stdout_buf = sys.stdout
-                if hasattr(stdout_buf, 'getvalue'):
-                    # Can't capture here - stdout already printed
-                    pass
-            except:
-                pass
-
-            review = review_wave(wave, workspace=self.workspace)
-            if review["status"] != "PASSED":
-                reason = review.get("reason", "Unknown gate failure")
+            if result is None or result["status"] != "PASSED":
+                reason = result.get("reason", "Unknown gate failure") if result else "Unknown"
                 return OrchestratorResult(
                     status="FAILED",
                     phase_id=phase_id,
@@ -159,7 +165,4 @@ Orchestrator execution stopped. Manual intervention required.
             waves_completed=waves_completed,
             completed_wave_ids=completed_ids,
         )
-
-
-
 

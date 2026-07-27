@@ -1,103 +1,104 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <DevelopmentPlan>
-  <Phase id="PHASE-ECOM">
-    <Goal>Build an E-commerce Order Processing System with parallel features and integration.</Goal>
+  <Phase id="PHASE-NLP">
+    <Goal>Build a modular NLP text processing pipeline with deep dependencies.</Goal>
 
     <!-- WAVE 1: Foundation -->
-    <Wave id="WAVE-MODELS-1">
-      <Goal>Create data models (Product, Order) and a simple in-memory storage engine.</Goal>
-      <ModuleRef id="M-MODELS" />
+    <Wave id="WAVE-BASE-1">
+      <Goal>Create text tokenizer and stopwords remover.</Goal>
+      <ModuleRef id="M-BASE" />
       <AllowedWriteScope>
-        <File>src/models.py</File>
-        <File>src/storage.py</File>
-        <File>tests/test_storage.py</File>
+        <File>src/tokenizer.py</File>
+        <File>src/stopwords.py</File>
+        <File>tests/test_tokenizer.py</File>
       </AllowedWriteScope>
       <Verification>
-        <Command>python -m pytest tests/test_storage.py -v</Command>
+        <Command>python -m pytest tests/test_tokenizer.py -v</Command>
       </Verification>
       <AcceptanceCriteria>
-        <Criterion>models.py defines Product and Order dataclasses.</Criterion>
-        <Criterion>storage.py provides Storage class with save and get methods.</Criterion>
+        <Criterion>tokenizer.py has tokenize(text) returning list of words.</Criterion>
+        <Criterion>stopwords.py has remove_stopwords(tokens) returning filtered list.</Criterion>
       </AcceptanceCriteria>
     </Wave>
 
-    <!-- WAVE 2: Parallel Multi-Agent Execution -->
+    <!-- WAVE 2: Parallel Feature Engineering -->
     <Wave id="WAVE-FEATURES-2">
-      <Goal>Develop discount calculator and notification modules in parallel.</Goal>
+      <Goal>Develop Stemmer and Sentiment Analyzer in parallel.</Goal>
       
-      <Slice id="SLICE-DISCOUNT">
-        <Goal>Create discount.py providing calculate_discount(product, quantity).</Goal>
-        <ModuleRef id="M-DISCOUNT" />
+      <Slice id="SLICE-STEMMER">
+        <Goal>Create stemmer.py with stem(word) and stem_tokens(tokens).</Goal>
+        <ModuleRef id="M-STEM" />
         <AllowedWriteScope>
-          <File>src/discount.py</File>
-          <File>tests/test_discount.py</File>
+          <File>src/stemmer.py</File>
+          <File>tests/test_stemmer.py</File>
         </AllowedWriteScope>
         <Verification>
-          <Command>python -m pytest tests/test_discount.py -v</Command>
+          <Command>python -m pytest tests/test_stemmer.py -v</Command>
         </Verification>
         <AcceptanceCriteria>
-          <Criterion>discount.py calculates bulk purchase discounts correctly.</Criterion>
+          <Criterion>stemmer.py reduces words to their root (simulated or basic rule-based).</Criterion>
         </AcceptanceCriteria>
       </Slice>
 
-      <Slice id="SLICE-NOTIFY">
-        <Goal>Create notifier.py providing a Notifier class with send_email(order_id) method.</Goal>
-        <ModuleRef id="M-NOTIFY" />
+      <Slice id="SLICE-SENTIMENT">
+        <Goal>Create sentiment.py with analyze(text) returning a sentiment score (-1.0 to 1.0).</Goal>
+        <ModuleRef id="M-SENT" />
         <AllowedWriteScope>
-          <File>src/notifier.py</File>
-          <File>tests/test_notifier.py</File>
+          <File>src/sentiment.py</File>
+          <File>tests/test_sentiment.py</File>
         </AllowedWriteScope>
         <Verification>
-          <Command>python -m pytest tests/test_notifier.py -v</Command>
+          <Command>python -m pytest tests/test_sentiment.py -v</Command>
         </Verification>
         <AcceptanceCriteria>
-          <Criterion>notifier.py outputs a simulated email to stdout.</Criterion>
+          <Criterion>sentiment.py returns positive score for good words, negative for bad.</Criterion>
         </AcceptanceCriteria>
       </Slice>
     </Wave>
 
-    <!-- WAVE 3: Sequential Feature (Uses Context Injection from WAVE 1) -->
-    <Wave id="WAVE-CART-3">
-      <Goal>Create the ShoppingCart class that uses Storage and Models.</Goal>
-      <ModuleRef id="M-CART" />
+    <!-- WAVE 3: Deep Integration (Uses Context Injection from ALL previous modules) -->
+    <Wave id="WAVE-PIPE-3">
+      <Goal>Create the Pipeline class that orchestrates tokenizer, stopwords, stemmer, and sentiment.</Goal>
+      <ModuleRef id="M-PIPE" />
       <AllowedWriteScope>
-        <File>src/cart.py</File>
-        <File>tests/test_cart.py</File>
+        <File>src/pipeline.py</File>
+        <File>tests/test_pipeline.py</File>
       </AllowedWriteScope>
       <FrozenScope>
-        <File>src/models.py</File>
-        <File>src/storage.py</File>
+        <File>src/tokenizer.py</File>
+        <File>src/stopwords.py</File>
+        <File>src/stemmer.py</File>
+        <File>src/sentiment.py</File>
       </FrozenScope>
       <Verification>
-        <Command>python -m pytest tests/test_cart.py -v</Command>
+        <Command>python -m pytest tests/test_pipeline.py -v</Command>
       </Verification>
       <AcceptanceCriteria>
-        <Criterion>cart.py imports Storage and Product.</Criterion>
-        <Criterion>ShoppingCart has add_item and checkout methods.</Criterion>
+        <Criterion>pipeline.py imports all 4 modules and uses their exact interfaces.</Criterion>
+        <Criterion>Pipeline.process(text) returns a dict with 'tokens', 'stems', and 'sentiment'.</Criterion>
       </AcceptanceCriteria>
     </Wave>
 
-    <!-- WAVE 4: Final Integration (Uses Context Injection from ALL waves) -->
-    <Wave id="WAVE-INTEGRATION-4">
-      <Goal>Integrate all modules into CheckoutService and write end-to-end tests.</Goal>
-      <ModuleRef id="M-CHECKOUT" />
+    <!-- WAVE 4: Application Layer -->
+    <Wave id="WAVE-APP-4">
+      <Goal>Create a CLI app that reads a hardcoded string, processes it via Pipeline, and prints JSON result.</Goal>
+      <ModuleRef id="M-APP" />
       <AllowedWriteScope>
-        <File>src/checkout.py</File>
-        <File>tests/test_checkout.py</File>
+        <File>src/app.py</File>
+        <File>tests/test_app.py</File>
       </AllowedWriteScope>
       <FrozenScope>
-        <File>src/models.py</File>
-        <File>src/storage.py</File>
-        <File>src/discount.py</File>
-        <File>src/notifier.py</File>
-        <File>src/cart.py</File>
+        <File>src/tokenizer.py</File>
+        <File>src/stopwords.py</File>
+        <File>src/stemmer.py</File>
+        <File>src/sentiment.py</File>
+        <File>src/pipeline.py</File>
       </FrozenScope>
       <Verification>
-        <Command>python -m pytest tests/test_checkout.py -v</Command>
+        <Command>python -m pytest tests/test_app.py -v</Command>
       </Verification>
       <AcceptanceCriteria>
-        <Criterion>checkout.py imports ShoppingCart, calculate_discount, and Notifier.</Criterion>
-        <Criterion>End-to-end test: adds items, applies discount, processes checkout, sends notification.</Criterion>
+        <Criterion>app.py imports Pipeline, runs it, and outputs valid JSON.</Criterion>
       </AcceptanceCriteria>
     </Wave>
   </Phase>

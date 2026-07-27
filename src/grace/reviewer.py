@@ -105,9 +105,23 @@ def review_wave(wave: Wave, workspace: Optional[str] = None) -> Dict[str, Any]:
     verif = run_verification(wave.verification, workspace)
     all_ok = all(v["returncode"] == 0 for v in verif.values())
 
+    if not all_ok:
+        failed = [cmd for cmd, r in verif.items() if r["returncode"] != 0]
+        errors = "\n".join(
+            f"[{cmd}]\nSTDOUT:\n{r['stdout']}\nSTDERR:\n{r['stderr']}"
+            for cmd, r in verif.items() if r["returncode"] != 0
+        )
+        return {
+            "status": "FAILED",
+            "reason": "VERIFICATION_FAILED",
+            "violations": [],
+            "verification": verif,
+            "error_output": errors,
+        }
+
     return {
-        "status": "PASSED" if all_ok else "FAILED",
-        "reason": None if all_ok else "VERIFICATION_FAILED",
+        "status": "PASSED",
+        "reason": None,
         "violations": [],
         "verification": verif,
     }

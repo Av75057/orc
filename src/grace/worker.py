@@ -23,7 +23,7 @@ class GraceWorker(abc.ABC):
         print(json.dumps(entry), flush=True)
 
     @abc.abstractmethod
-    def execute(self, packet: str) -> bool:
+    def execute(self, packet: str, error_context: Optional[str] = None) -> bool:
         ...
 
     @property
@@ -33,8 +33,10 @@ class GraceWorker(abc.ABC):
 
 
 class StubWorker(GraceWorker):
-    def execute(self, packet: str) -> bool:
+    def execute(self, packet: str, error_context: Optional[str] = None) -> bool:
         self._log("execution_started", "ok", details="stub worker, nothing to do")
+        if error_context:
+            self._log("repair_context_received", "ok", context=error_context[:100])
         self._log("execution_finished", "ok")
         return True
 
