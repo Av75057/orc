@@ -105,7 +105,7 @@ Orchestrator execution stopped. Manual intervention required.
             wave_id = wave.id
             phase_id = phase.id if phase else ""
 
-            packet = generate_controller_packet(self.plan, wave_id)
+            packet = generate_controller_packet(self.plan, wave_id, workspace=self.workspace)
             self._last_packet = packet
 
             worker_ok = self.worker.execute(packet)
@@ -159,6 +159,7 @@ Orchestrator execution stopped. Manual intervention required.
             waves_completed=waves_completed,
             completed_wave_ids=completed_ids,
         )
+
 
 
 

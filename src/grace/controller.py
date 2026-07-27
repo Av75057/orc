@@ -1,5 +1,9 @@
+import os
+from pathlib import Path
 from typing import Optional
 from src.grace.models import DevelopmentPlan, Wave
+
+MAX_CONTEXT_LINES = 200
 
 
 def _find_wave(plan: DevelopmentPlan, wave_id: Optional[str] = None) -> Wave:
@@ -14,9 +18,37 @@ def _find_wave(plan: DevelopmentPlan, wave_id: Optional[str] = None) -> Wave:
     raise ValueError("DevelopmentPlan is empty")
 
 
+def _read_context_file(workspace: str, filepath: str) -> Optional[str]:
+    full = Path(workspace) / filepath
+    if not full.exists() or not full.is_file():
+        return None
+    try:
+        lines = full.read_text(encoding="utf-8").splitlines()
+        if len(lines) > MAX_CONTEXT_LINES:
+            return "\n".join(lines[:MAX_CONTEXT_LINES]) + "\n// ... file truncated ..."
+        return "\n".join(lines)
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
+def _build_context_section(wave: Wave, workspace: Optional[str] = None) -> str:
+    if not workspace:
+        return ""
+    files_to_read = set(wave.frozen_scope + wave.modules)
+    blocks = []
+    for filepath in sorted(files_to_read):
+        content = _read_context_file(workspace, filepath)
+        if content:
+            blocks.append(f"### `{filepath}`\n```\n{content}\n```")
+    if not blocks:
+        return ""
+    return "\n".join(["## Existing Context (Read-Only)"] + blocks)
+
+
 def generate_controller_packet(
     plan: DevelopmentPlan,
     wave_id: Optional[str] = None,
+    workspace: Optional[str] = None,
 ) -> str:
     wave = _find_wave(plan, wave_id)
 
@@ -31,6 +63,9 @@ def generate_controller_packet(
     frozen_lines = "\n".join(f"- `{f}`" for f in wave.frozen_scope)
     preserve_lines = "\n".join(f"- {item}" for item in wave.must_preserve)
     verif_lines = "\n".join(f"- `{cmd}`" for cmd in wave.verification)
+    context_section = _build_context_section(wave, workspace)
+
+    ctx_block = f"\n\n{context_section}" if context_section else ""
 
     return f"""# Controller Packet — {phase_id} / {wave.id}
 
@@ -53,7 +88,7 @@ def generate_controller_packet(
 
 ## Verification
 {verif_lines}
-
+{ctx_block}
 ## Expected Evidence
 - Files modified strictly within Allowed Write Scope.
 - Verification commands exit with code 0.
@@ -64,3 +99,4 @@ def generate_controller_packet(
 - If verification fails after 2-3 attempts, stop and return a Failure Packet.
 - If the Goal conflicts with Must Preserve invariants, stop and request a new Controller Packet.
 """
+

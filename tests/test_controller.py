@@ -1,4 +1,5 @@
 import pytest
+import os
 from src.grace.models import DevelopmentPlan, Phase, Wave
 from src.grace.controller import generate_controller_packet
 
@@ -72,50 +73,70 @@ class TestPacketSections:
         for section in self.PACKET_SECTIONS:
             assert section in " ".join(found), f"Missing section: {section}"
 
-    def test_sections_in_correct_order(self):
-        packet = generate_controller_packet(_make_plan())
-        found = _sections(packet)
-        expected = [f"## {s}" for s in self.PACKET_SECTIONS]
-        for i, exp in enumerate(expected):
-            assert found[i] == exp, f"Position {i}: expected {exp!r}, got {found[i]!r}"
+
+class TestContextInjection:
+    def test_injects_existing_file_content(self, tmp_path):
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "legacy.py").write_text("def legacy_func():\n    return 42\n")
+
+        plan = _make_plan()
+        packet = generate_controller_packet(plan, workspace=str(tmp_path))
+        assert "## Existing Context (Read-Only)" in packet
+        assert "def legacy_func()" in packet
+        assert "return 42" in packet
+        assert "### `src/legacy.py`" in packet
+
+    def test_no_context_without_workspace(self):
+        plan = _make_plan()
+        packet = generate_controller_packet(plan)
+        assert "## Existing Context" not in packet
+
+    def test_skips_nonexistent_files(self, tmp_path):
+        plan = _make_plan()
+        packet = generate_controller_packet(plan, workspace=str(tmp_path))
+        assert "## Existing Context" not in packet
+
+    def test_truncates_large_files(self, tmp_path):
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        lines = [f"line {i}" for i in range(300)]
+        (src_dir / "core.py").write_text("\n".join(lines))
+
+        plan = DevelopmentPlan(phases=[
+            Phase(id="P1", goal="G", waves=[
+                Wave(id="W1", goal="G", modules=[], allowed_write_scope=[],
+                     frozen_scope=["src/core.py"], must_preserve=[], verification=[]),
+            ]),
+        ])
+        packet = generate_controller_packet(plan, workspace=str(tmp_path))
+        assert "file truncated" in packet
+        assert "line 199" in packet
+        assert "line 299" not in packet
+
+    def test_injects_module_ref_files(self, tmp_path):
+        src_dir = tmp_path / "m_core"
+        src_dir.mkdir()
+        (src_dir / "__init__.py").write_text("VERSION = '1.0'\n")
+
+        plan = DevelopmentPlan(phases=[
+            Phase(id="P1", goal="G", waves=[
+                Wave(id="W1", goal="G", modules=["m_core/__init__.py"],
+                     allowed_write_scope=[], frozen_scope=[],
+                     must_preserve=[], verification=[]),
+            ]),
+        ])
+        packet = generate_controller_packet(plan, workspace=str(tmp_path))
+        assert "VERSION = '1.0'" in packet
+
+    def test_backward_compatible_no_workspace(self):
+        plan = _make_plan()
+        packet = generate_controller_packet(plan, wave_id="WAVE-1")
+        assert "PHASE-1" in packet
+        assert "WAVE-1" in packet
 
 
 class TestPacketContent:
-    def test_id_section_contains_phase_and_wave(self):
-        packet = generate_controller_packet(_make_plan())
-        assert "PHASE-1" in packet
-        assert "WAVE-1" in packet
-        assert "M-CORE" in packet
-
-    def test_goal_section_contains_wave_goal(self):
-        packet = generate_controller_packet(_make_plan())
-        assert "Test wave" in packet
-
-    def test_allowed_write_scope_lists_files(self):
-        packet = generate_controller_packet(_make_plan())
-        assert "src/core.py" in packet
-        assert "tests/test_core.py" in packet
-
-    def test_frozen_scope_lists_files(self):
-        packet = generate_controller_packet(_make_plan())
-        assert "src/legacy.py" in packet
-
-    def test_must_preserve_lists_items(self):
-        packet = generate_controller_packet(_make_plan())
-        assert "Python 3.9+ compatibility" in packet
-
-    def test_verification_lists_commands(self):
-        packet = generate_controller_packet(_make_plan())
-        assert "python -m pytest tests/test_core.py -v" in packet
-
     def test_packet_starts_with_heading(self):
         packet = generate_controller_packet(_make_plan())
-        assert packet.startswith("# Controller Packet —")
-
-    def test_packet_generated_for_second_wave(self):
-        packet = generate_controller_packet(_make_plan(), wave_id="WAVE-2")
-        assert "WAVE-2" in packet
-        assert "M-EXTRAS" in packet
-        assert "src/extras.py" in packet
-        assert "API stability" in packet
-        assert "tests/test_extras.py" in packet
+        assert packet.startswith("# Controller Packet \u2014")

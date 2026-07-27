@@ -58,6 +58,10 @@ class LLMWorker(GraceWorker):
             "\n===FILE:path/to/file.py==="
             "\n<complete code here>"
             "\n===END==="
+            "\n"
+            "\nIMPORTANT: If the user message contains an '## Existing Context' section,"
+            "\n use that code to understand existing interfaces. DO NOT modify those files."
+            "\n Generate code that is compatible with the existing interfaces shown."
             "\nWrite complete, working code. Use exact file paths from Allowed Write Scope."
         )
 
@@ -141,3 +145,4 @@ class LLMWorker(GraceWorker):
         if len(matches) == len(allowed):
             return [(allowed[i], code.strip()) for i, code in enumerate(matches)]
         return []
+

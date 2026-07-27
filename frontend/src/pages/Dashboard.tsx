@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getHealth, getState, getArtifacts, runOrchestrator } from "../api/graceApi";
+import { getHealth, getState, getArtifacts, runOrchestrator, resetState } from "../api/graceApi";
 import type { HealthStatus, GraceState, ArtifactList } from "../api/graceApi";
 import EscalationModal from "../components/EscalationModal";
 import SettingsModal from "../components/SettingsModal";
@@ -36,6 +36,16 @@ export default function Dashboard() {
   };
 
   useEffect(() => { loadData(); }, []);
+
+  const handleReset = async () => {
+    if (!confirm("Are you sure you want to reset the state?")) return;
+    try {
+      await resetState();
+      loadData();
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
 
   const handleRun = async () => {
     setRunning(true);
@@ -79,6 +89,12 @@ export default function Dashboard() {
           <button onClick={handleRun} disabled={running}
             className="px-4 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
             {running ? "Running..." : "Run Orchestrator"}
+          </button>
+          <button
+            onClick={handleReset}
+            className="px-3 py-1.5 text-sm bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Reset State
           </button>
           <button onClick={() => setShowSettings(true)}
             className="px-3 py-1.5 text-sm bg-gray-100 border rounded hover:bg-gray-200">
@@ -143,4 +159,5 @@ function StatCard({ title, value }: { title: string; value: string }) {
     </div>
   );
 }
+
 
