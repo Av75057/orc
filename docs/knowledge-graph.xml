@@ -1,50 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<KnowledgeGraph>
-  <Modules>
-    <Module id="M-BASE">
-      <Name>Base NLP Utilities</Name>
-      <Functions>
-        <Function id="F-TOKENIZE">tokenize(text) -> list[str]</Function>
-        <Function id="F-STOPWORDS">remove_stopwords(tokens) -> list[str]</Function>
-      </Functions>
+<KnowledgeGraph id="KG-SMARTHOME" version="1.0" last_review="2026-07-27">
+  <ModuleGraph>
+    <Module id="M-EVENTBUS">
+      <Name>EventBus</Name>
+      <File>src/smart_home/event_bus.py</File>
+      <Purpose>Central event bus. Publish/subscribe by topic. Synchronous delivery.</Purpose>
+      <Owns><File>src/smart_home/event_bus.py</File><File>tests/test_event_bus.py</File></Owns>
     </Module>
-    <Module id="M-STEM">
-      <Name>Stemmer</Name>
-      <Functions>
-        <Function id="F-STEM">stem(word) -> str</Function>
-        <Function id="F-STEM_TOKENS">stem_tokens(tokens) -> list[str]</Function>
-      </Functions>
+    <Module id="M-TEMPSENSOR">
+      <Name>TemperatureSensor</Name>
+      <File>src/smart_home/sensors.py</File>
+      <Purpose>Generates "sensor.temperature" events.</Purpose>
+      <Owns><File>src/smart_home/sensors.py</File><File>tests/test_sensors.py</File></Owns>
     </Module>
-    <Module id="M-SENT">
-      <Name>Sentiment Analyzer</Name>
-      <Functions>
-        <Function id="F-ANALYZE">analyze(text) -> float</Function>
-      </Functions>
+    <Module id="M-MOTIONSENSOR">
+      <Name>MotionSensor</Name>
+      <File>src/smart_home/sensors.py</File>
+      <Purpose>Generates "sensor.motion" events.</Purpose>
+      <Owns><File>src/smart_home/sensors.py</File><File>tests/test_sensors.py</File></Owns>
     </Module>
-    <Module id="M-PIPE">
-      <Name>Pipeline</Name>
-      <Functions>
-        <Function id="F-PROCESS">process(text) -> dict</Function>
-      </Functions>
+    <Module id="M-THERMOSTAT">
+      <Name>Thermostat</Name>
+      <File>src/smart_home/actuators.py</File>
+      <Purpose>Subscribes to temperature. Heater ON when temp < threshold.</Purpose>
+      <Owns><File>src/smart_home/actuators.py</File><File>tests/test_actuators.py</File></Owns>
     </Module>
-    <Module id="M-APP">
-      <Name>CLI Application</Name>
-      <Functions>
-        <Function id="F-MAIN">main() -> None</Function>
-      </Functions>
+    <Module id="M-LIGHTBULB">
+      <Name>LightBulb</Name>
+      <File>src/smart_home/actuators.py</File>
+      <Purpose>Subscribes to motion. Light ON when motion detected.</Purpose>
+      <Owns><File>src/smart_home/actuators.py</File><File>tests/test_actuators.py</File></Owns>
     </Module>
-  </Modules>
-  
-  <CrossLinks>
-    <Link source="UC-TOKENIZE" target="M-BASE" />
-    <Link source="UC-STOPWORDS" target="M-BASE" />
-    <Link source="UC-STEM" target="M-STEM" />
-    <Link source="UC-SENTIMENT" target="M-SENT" />
-    <Link source="UC-PIPELINE" target="M-PIPE" />
-    <Link source="UC-CLI" target="M-APP" />
-    <Link source="M-PIPE" target="M-BASE" />
-    <Link source="M-PIPE" target="M-STEM" />
-    <Link source="M-PIPE" target="M-SENT" />
-    <Link source="M-APP" target="M-PIPE" />
-  </CrossLinks>
+    <Module id="M-CONTROLLER-SH">
+      <Name>SmartHomeController</Name>
+      <File>src/smart_home/controller.py</File>
+      <Purpose>Creates EventBus, registers sensors/actuators, provides integration scenarios.</Purpose>
+      <Owns><File>src/smart_home/controller.py</File><File>tests/test_integration.py</File></Owns>
+    </Module>
+  </ModuleGraph>
 </KnowledgeGraph>

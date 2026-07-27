@@ -1,38 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Requirements>
-  <SystemGoal>Build a modular NLP text processing pipeline that tokenizes, removes stopwords, stems, and analyzes sentiment.</SystemGoal>
-  
+<Requirements id="REQ-SMARTHOME" version="1.0" last_review="2026-07-27">
+
+  <SystemGoal>
+    Event-driven Smart Home Automation System: sensors publish events
+    through EventBus, actuators subscribe and react, controller coordinates scenarios.
+    System runs in-process, no external services, verified by deterministic tests.
+  </SystemGoal>
+
   <UseCases>
-    <UseCase id="UC-TOKENIZE">
-      <Description>Split text into lowercase tokens.</Description>
+    <UseCase id="UC-PUBSUB">
+      <Name>Event publish / subscribe</Name>
+      <Description>EventBus accepts events from publishers and delivers to all registered subscribers.</Description>
     </UseCase>
-    <UseCase id="UC-STOPWORDS">
-      <Description>Remove common English stopwords from a list of tokens.</Description>
+    <UseCase id="UC-TEMP">
+      <Name>Temperature monitoring and thermostat control</Name>
+      <Description>TemperatureSensor publishes "sensor.temperature". Thermostat subscribes.</Description>
     </UseCase>
-    <UseCase id="UC-STEM">
-      <Description>Reduce tokens to their root form handling double consonants.</Description>
+    <UseCase id="UC-MOTION">
+      <Name>Motion detection and light control</Name>
+      <Description>MotionSensor publishes "sensor.motion". LightBulb subscribes.</Description>
     </UseCase>
-    <UseCase id="UC-SENTIMENT">
-      <Description>Calculate a sentiment score (-1.0 to 1.0) based on positive/negative keywords.</Description>
+    <UseCase id="UC-INTEGRATION">
+      <Name>Smart home orchestration</Name>
+      <Description>SmartHomeController creates EventBus, registers all sensors and actuators.</Description>
     </UseCase>
-    <UseCase id="UC-PIPELINE">
-      <Description>Orchestrate all NLP modules into a single processing pipeline.</Description>
-    </UseCase>
-    <UseCase id="UC-CLI">
-      <Description>Provide a command-line interface to run the pipeline and output JSON.</Description>
+    <UseCase id="UC-VERIFY">
+      <Name>Deterministic verification</Name>
+      <Description>pytest covers each use case. All tests deterministic, no external deps.</Description>
     </UseCase>
   </UseCases>
-
-  <Scope>
-    <InScope>Core NLP logic, Pipeline orchestration, CLI.</InScope>
-    <OutOfScope>Web servers, Databases, External NLP libraries (NLTK/Spacy).</OutOfScope>
-  </Scope>
-
-  <Invariants>
-    <Invariant>tokenizer.tokenize(text) MUST return a list of strings.</Invariant>
-    <Invariant>stopwords.remove_stopwords(tokens) MUST return a list of strings.</Invariant>
-    <Invariant>stemmer.stem(word) MUST return a string.</Invariant>
-    <Invariant>sentiment.analyze(text) MUST return a float.</Invariant>
-    <Invariant>Pipeline.process(text) MUST return a dict with keys: 'tokens', 'stems', 'sentiment'.</Invariant>
-  </Invariants>
 </Requirements>

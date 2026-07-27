@@ -1,7 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Technology>
-  <RuntimeStack>Python 3.9+</RuntimeStack>
-  <Dependencies>Standard Library only (re, json, argparse, sys)</Dependencies>
-  <Constraints>No external NLP libraries allowed. No external HTTP clients.</Constraints>
-  <Toolchain>pytest</Toolchain>
+<Technology id="TECH-SMARTHOME" version="1.0" last_review="2026-07-27">
+  <RuntimeStack>
+    <Language>Python 3.11+</Language>
+    <Paradigm>Event-driven, publish/subscribe, synchronous in-process</Paradigm>
+    <DataModel>dataclasses for events, plain objects for devices</DataModel>
+  </RuntimeStack>
+  <CriticalDependencies>
+    <Dependency><Name>Python Standard Library</Name><Modules>dataclasses, typing</Modules></Dependency>
+    <Dependency><Name>pytest</Name><Role>Test runner, dev only</Role></Dependency>
+  </CriticalDependencies>
+  <OperationalConstraints>
+    <Constraint>Only Python Standard Library for production code</Constraint>
+    <Constraint>Synchronous event delivery. No threading/asyncio</Constraint>
+    <Constraint>All modules in one Python process</Constraint>
+    <Constraint>Events are immutable dataclasses</Constraint>
+  </OperationalConstraints>
 </Technology>

@@ -1,14 +1,12 @@
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
-.Python
-env/
-venv/
-.eggs/
-*.egg-info/
 node_modules/
 dist/
 evidence/
 grace_state.json
+.vite/
+*.egg-info/
+.venv/
+.idea/
 
