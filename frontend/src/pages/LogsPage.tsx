@@ -59,19 +59,20 @@ export default function LogsPage() {
         {entries.map((entry, i) => {
           const isError = "error" in entry;
           const err = entry as { error: string; raw: string };
+          const log = entry as LogEntry;
           return (
             <div key={i}
               className={`text-xs font-mono p-2 rounded border ${
                 isError
                   ? "bg-yellow-50 border-yellow-200 text-yellow-800"
-                  : (entry as LogEntry).result === "fail"
+                  : log.result === "fail"
                   ? "bg-red-50 border-red-200 text-red-800"
                   : "bg-white border-gray-100 text-gray-700"
               }`}>
               <span>
                 {isError
                   ? `${err.error}: ${err.raw}`
-                  : `${(entry as LogEntry).timestamp?.slice(11, 19) || ""} [${(entry as LogEntry).module}] ${(entry as LogEntry).fn}: ${(entry as LogEntry).event} \u2192 ${(entry as LogEntry).result}`}
+                  : `${log.timestamp?.slice(11, 19) || ""} [${log.module}] ${log.fn}: ${log.event} \u2192 ${log.result}`}
               </span>
             </div>
           );
@@ -82,12 +83,14 @@ export default function LogsPage() {
 }
 
 function findStdoutFiles(node: TreeNode, prefix: string = ""): string[] {
-  const fullPath = prefix ? `${prefix}/${node.name}` : node.name;
-  if (node.type === "file" && node.name === "worker_stdout.txt") {
+  const nodeName = node.name === "evidence" ? "" : node.name;
+  const fullPath = prefix ? `${prefix}/${nodeName}` : nodeName;
+  if (node.type === "file" && nodeName === "worker_stdout.txt") {
     return [fullPath];
   }
   if (node.type === "directory" && node.children) {
-    return node.children.flatMap((child) => findStdoutFiles(child, fullPath));
+    return node.children.flatMap((child) => findStdoutFiles(child, nodeName));
   }
   return [];
 }
+

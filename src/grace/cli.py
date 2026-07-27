@@ -73,8 +73,10 @@ def main(argv=None) -> int:
     sys.stdout.write(stdout_text)
 
     # Save to evidence directory
-    wave_id = result.wave_id or "T0"
-    evidence_dir = Path("evidence") / wave_id
+    trace_id = "TRACE-001"
+    phase_id = result.phase_id or "PHASE-0"
+    wave_id = result.wave_id or "WAVE-0"
+    evidence_dir = Path("evidence") / trace_id / phase_id / wave_id
     evidence_dir.mkdir(parents=True, exist_ok=True)
     (evidence_dir / "worker_stdout.txt").write_text(stdout_text)
 
@@ -103,4 +105,5 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
 
