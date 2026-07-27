@@ -100,10 +100,38 @@ class LLMWorker(GraceWorker):
         raise RuntimeError("LLM_RATE_LIMIT_EXHAUSTED: Max API retries reached")
 
     def _extract_files_from_text(self, output: str) -> list:
-        pattern = re.compile(r'===FILE:(.+?)===\n(.*?)===END===', re.DOTALL)
-        matches = pattern.findall(output)
         result = []
-        for filepath, code in matches:
+        # Pattern 1: ===FILE:path=== code ===END===
+        p1 = re.compile(r'===FILE:\s*([^\s=]+)\s*===\s*
+(.*?)===END===', re.DOTALL)
+        for filepath, code in p1.findall(output):
+            result.append((filepath.strip(), code.strip()))
+        if result:
+            return result
+        # Pattern 2: ===FILE:path=== followed by ```python ... ```
+        p2 = re.compile(r'===FILE:\s*([^\s=]+)\s*===.*?
+```(?:python)?\s*
+(.*?)
+```', re.DOTALL)
+        for filepath, code in p2.findall(output):
+            result.append((filepath.strip(), code.strip()))
+        if result:
+            return result
+        # Pattern 3: filename in header followed by code block
+        p3 = re.compile(r'#+\s*([\w/.]+\.py)\s*
+```(?:python)?\s*
+(.*?)
+```', re.DOTALL)
+        for filepath, code in p3.findall(output):
+            result.append((filepath.strip(), code.strip()))
+        if result:
+            return result
+        # Pattern 4: Any ```python block with file path comment on first line
+        p4 = re.compile(r'```(?:python)?\s*
+#\s*([\w/.]+\.py)\s*
+(.*?)
+```', re.DOTALL)
+        for filepath, code in p4.findall(output):
             result.append((filepath.strip(), code.strip()))
         return result
 
@@ -188,6 +216,7 @@ class LLMWorker(GraceWorker):
 
         self._log("execution_finished", "ok")
         return True
+
 
 
 
