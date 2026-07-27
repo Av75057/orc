@@ -14,25 +14,41 @@ class TestGetChangedFiles:
     @patch("src.grace.reviewer.subprocess.run")
     def test_returns_list_of_files(self, mock_run):
         mock_run.return_value = MagicMock(
-            returncode=0, stdout="src/a.py\ntests/test_a.py\n", stderr="",
+            returncode=0,
+            stdout=" M src/a.py\n M tests/test_a.py\n",
+            stderr="",
         )
-        files = get_changed_files("HEAD")
+        files = get_changed_files()
         assert files == ["src/a.py", "tests/test_a.py"]
+
+    @patch("src.grace.reviewer.subprocess.run")
+    def test_parses_untracked_files(self, mock_run):
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout="?? new_file.py\n M modified.py\n?? frontend/app.tsx\n",
+            stderr="",
+        )
+        files = get_changed_files()
+        assert "new_file.py" in files
+        assert "modified.py" in files
+        assert "frontend/app.tsx" in files
 
     @patch("src.grace.reviewer.subprocess.run")
     def test_raises_on_git_failure(self, mock_run):
         mock_run.return_value = MagicMock(
             returncode=1, stdout="", stderr="fatal: not a git repository",
         )
-        with pytest.raises(RuntimeError, match="git diff failed"):
-            get_changed_files("HEAD")
+        with pytest.raises(RuntimeError, match="git status failed"):
+            get_changed_files()
 
     @patch("src.grace.reviewer.subprocess.run")
     def test_skips_empty_lines(self, mock_run):
         mock_run.return_value = MagicMock(
-            returncode=0, stdout="src/a.py\n\ntests/test_a.py\n", stderr="",
+            returncode=0,
+            stdout=" M src/a.py\n\n M tests/test_a.py\n",
+            stderr="",
         )
-        files = get_changed_files("HEAD")
+        files = get_changed_files()
         assert files == ["src/a.py", "tests/test_a.py"]
 
 
@@ -159,6 +175,52 @@ class TestReviewWave:
 
     @patch("src.grace.reviewer.get_changed_files")
     @patch("src.grace.reviewer.run_verification")
+    def test_excludes_state_and_evidence(self, mock_verif, mock_git):
+        mock_git.return_value = [
+            "src/app.py",
+            "grace_state.json",
+            "evidence/T1/log.txt",
+            "__pycache__/cli.cpython-312.pyc",
+            ".pytest_cache/v/cache/lastfailed",
+        ]
+        mock_verif.return_value = {
+            "pytest": {"returncode": 0, "stdout": "OK", "stderr": ""},
+        }
+        wave = Wave(
+            id="WAVE-1",
+            goal="test",
+            allowed_write_scope=["src/*"],
+            verification=["pytest"],
+        )
+        result = review_wave(wave)
+        assert result["status"] == "PASSED"
+        assert result["reason"] is None
+
+    @patch("src.grace.reviewer.get_changed_files")
+    def test_excludes_state_but_catches_other_violations(self, mock_git):
+        mock_git.return_value = [
+            "src/app.py",
+            "grace_state.json",
+            "evidence/T1/log.txt",
+            "__pycache__/cli.pyc",
+            "infra/bad.yaml",
+        ]
+        wave = Wave(
+            id="WAVE-1",
+            goal="test",
+            allowed_write_scope=["src/*"],
+            verification=["pytest"],
+        )
+        result = review_wave(wave)
+        assert result["status"] == "FAILED"
+        assert result["reason"] == "SCOPE_VIOLATION"
+        assert "infra/bad.yaml" in result["violations"]
+        assert "grace_state.json" not in result["violations"]
+        assert "evidence/T1/log.txt" not in result["violations"]
+        assert "__pycache__/cli.pyc" not in result["violations"]
+
+    @patch("src.grace.reviewer.get_changed_files")
+    @patch("src.grace.reviewer.run_verification")
     def test_verification_not_run_on_scope_violation(self, mock_verif, mock_git):
         mock_git.return_value = ["infra/deploy.yaml"]
         wave = Wave(
@@ -170,3 +232,5 @@ class TestReviewWave:
         result = review_wave(wave)
         assert result["verification"] == {}
         mock_verif.assert_not_called()
+
+
