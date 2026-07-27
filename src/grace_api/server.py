@@ -1,6 +1,7 @@
 import json
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import socketserver
 from typing import Optional
 
 from src.grace_api.routes import GraceAPI
@@ -75,7 +76,10 @@ def run_server(host: str = "127.0.0.1", port: int = 8080,
                base_dir: str = ".", api_cls=GraceAPI) -> None:
     api = api_cls(base_dir=base_dir)
     GraceHTTPHandler.api = api
-    server = HTTPServer((host, port), GraceHTTPHandler)
+    class GraceHTTPServer(HTTPServer):
+            allow_reuse_address = True
+
+    server = GraceHTTPServer((host, port), GraceHTTPHandler)
     print(f"[GRACE-API] Listening on http://{host}:{port}")
     print(f"[GRACE-API] Base dir: {base_dir}")
     try:
@@ -93,4 +97,5 @@ if __name__ == "__main__":
     parser.add_argument("--base-dir", default=".")
     args = parser.parse_args()
     run_server(host=args.host, port=args.port, base_dir=args.base_dir)
+
 
