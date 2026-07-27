@@ -42,7 +42,9 @@ import time
 import urllib.request
 import urllib.error
 from pathlib import Path
-from typing import List, Tuple, Optional
+from typing
+import fnmatch
+from fnmatch import fnmatch import List, Tuple, Optional
 from src.grace.worker import GraceWorker
 
 MAX_API_RETRIES = 3
@@ -185,7 +187,7 @@ class LLMWorker(GraceWorker):
         for entry in files_data:
             path = entry.get("path", "")
             content = entry.get("content", "")
-            if path not in allowed:
+            if not any(fnmatch(path, a) for a in allowed):
                 raise ScopeViolationError(f"File '{path}' is not in Allowed Write Scope: {allowed}")
             abs_path = Path(self.workspace) / path
             abs_path.parent.mkdir(parents=True, exist_ok=True)
@@ -249,6 +251,7 @@ class LLMWorker(GraceWorker):
 
         self._log("execution_finished", "ok")
         return True
+
 
 
 
