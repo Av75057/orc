@@ -170,7 +170,7 @@ class LLMWorker(GraceWorker):
             user_message = f"## PREVIOUS ATTEMPT FAILED\nYour previous code failed with this error:\n```\n{error_context}\n```\nPlease fix the code strictly within Allowed Write Scope.\n\n{packet}"
 
         messages = [
-            {"role": "system", "content": system_prompt + " You MUST output JSON. JSON schema: {"files_to_write": [{"path": "...", "content": "..."}], "logs": [{}]}"},
+            {"role": "system", "content": system_prompt + ' You MUST output JSON. JSON schema: {"files_to_write": [{"path": "...", "content": "..."}], "logs": [{}]}'},
             {"role": "user", "content": user_message},
         ]
         self._log("llm_api_call_started", "ok", model=self.model)
@@ -213,6 +213,7 @@ class LLMWorker(GraceWorker):
 
         self._log("execution_finished", "ok")
         return True
+
 
 
 
