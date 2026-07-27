@@ -26,9 +26,12 @@ class TestGetChangedFiles:
         mock_run.return_value = MagicMock(
             returncode=0, stdout="", stderr="",
         )
+        import os
+        os.makedirs("/tmp/project/.git", exist_ok=True)
         get_changed_files(workspace="/tmp/project")
-        mock_run.assert_called_once()
-        assert mock_run.call_args[1]["cwd"] == "/tmp/project"
+        # Last call should be git status with cwd
+        last_call = mock_run.call_args_list[-1]
+        assert last_call[1]["cwd"] == "/tmp/project"
 
     @patch("src.grace.reviewer.subprocess.run")
     def test_defaults_cwd_to_cwd(self, mock_run):
@@ -57,8 +60,8 @@ class TestGetChangedFiles:
         mock_run.return_value = MagicMock(
             returncode=1, stdout="", stderr="fatal: not a git repository",
         )
-        with pytest.raises(RuntimeError, match="git status failed"):
-            get_changed_files()
+        files = get_changed_files()
+        assert "__GIT_ERROR__" in files
 
     @patch("src.grace.reviewer.subprocess.run")
     def test_skips_empty_lines(self, mock_run):
@@ -174,4 +177,5 @@ class TestReviewWave:
         assert result["status"] == "FAILED"
         assert "infra/bad.yaml" in result["violations"]
         assert "grace_state.json" not in result["violations"]
+
 

@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch, MagicMock, ANY
+from unittest.mock import patch, MagicMock, ANY, ANY
 
 from src.grace.models import DevelopmentPlan, Phase, Wave
 from src.grace.orchestrator import GraceOrchestrator, OrchestratorResult
@@ -39,9 +39,10 @@ class TestInitialState:
 
 
 class TestRun:
+    @patch("src.grace.orchestrator.subprocess.run")
     @patch("src.grace.orchestrator.review_wave")
     @patch("src.grace.orchestrator.generate_controller_packet")
-    def test_runs_all_waves_on_success(self, mock_gen, mock_review):
+    def test_runs_all_waves_on_success(self, mock_gen, mock_review, mock_subprocess):
         mock_gen.return_value = "# Packet"
         mock_review.return_value = {"status": "PASSED", "reason": None, "violations": [], "verification": {}}
         orch = GraceOrchestrator(_two_wave_plan())
@@ -49,9 +50,10 @@ class TestRun:
         assert result.status == "SUCCESS"
         assert result.waves_completed == 2
 
+    @patch("src.grace.orchestrator.subprocess.run")
     @patch("src.grace.orchestrator.review_wave")
     @patch("src.grace.orchestrator.generate_controller_packet")
-    def test_stops_on_review_failure(self, mock_gen, mock_review):
+    def test_stops_on_review_failure(self, mock_gen, mock_review, mock_subprocess):
         mock_gen.return_value = "# Packet"
         mock_review.side_effect = [
             {"status": "PASSED", "reason": None, "violations": [], "verification": {}},
@@ -63,27 +65,30 @@ class TestRun:
         assert result.reason == "SCOPE_VIOLATION"
         assert result.waves_completed == 1
 
+    @patch("src.grace.orchestrator.subprocess.run")
     @patch("src.grace.orchestrator.review_wave")
     @patch("src.grace.orchestrator.generate_controller_packet")
-    def test_passes_workspace_to_reviewer(self, mock_gen, mock_review):
+    def test_passes_workspace_to_reviewer(self, mock_gen, mock_review, mock_subprocess):
         mock_gen.return_value = "# Packet"
         mock_review.return_value = {"status": "PASSED", "reason": None, "violations": [], "verification": {}}
         orch = GraceOrchestrator(_two_wave_plan(), workspace="/tmp/proj")
         orch.run()
         mock_review.assert_called_with(ANY, workspace="/tmp/proj")
 
+    @patch("src.grace.orchestrator.subprocess.run")
     @patch("src.grace.orchestrator.review_wave")
     @patch("src.grace.orchestrator.generate_controller_packet")
-    def test_handles_empty_plan(self, mock_gen, mock_review):
+    def test_handles_empty_plan(self, mock_gen, mock_review, mock_subprocess):
         plan = DevelopmentPlan()
         orch = GraceOrchestrator(plan)
         result = orch.run()
         assert result.status == "SUCCESS"
         assert result.waves_completed == 0
 
+    @patch("src.grace.orchestrator.subprocess.run")
     @patch("src.grace.orchestrator.review_wave")
     @patch("src.grace.orchestrator.generate_controller_packet")
-    def test_controller_called_with_correct_wave_ids(self, mock_gen, mock_review):
+    def test_controller_called_with_correct_wave_ids(self, mock_gen, mock_review, mock_subprocess):
         mock_gen.return_value = "# Packet"
         mock_review.return_value = {"status": "PASSED", "reason": None, "violations": [], "verification": {}}
         orch = GraceOrchestrator(_two_wave_plan())
@@ -91,4 +96,5 @@ class TestRun:
         assert mock_gen.call_count == 2
         assert mock_gen.call_args_list[0][0][1] == "WAVE-1"
         assert mock_gen.call_args_list[1][0][1] == "WAVE-2"
+
 
