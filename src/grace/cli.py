@@ -89,7 +89,7 @@ def main(argv=None) -> int:
             "details": result.failure_packet or "",
         },
     }
-    Path("grace_state.json").write_text(json.dumps(state, indent=2))
+    Path(workspace, "grace_state.json").write_text(json.dumps(state, indent=2))
 
     log.log(
         "M-CLI", "main", "ORCHESTRATOR_RUN",
@@ -107,6 +107,7 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
 
 
 

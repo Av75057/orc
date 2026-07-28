@@ -34,6 +34,7 @@ START_MODULE_CONTRACT: M-ORCHESTRATOR
 END_MODULE_CONTRACT: M-ORCHESTRATOR
 """
 
+from pathlib import Path
 import os
 import subprocess
 from typing import Optional, Dict, Any, List
@@ -201,6 +202,31 @@ Orchestrator execution stopped. Manual intervention required.
         waves_completed = 0
         completed_ids: List[str] = []
 
+        # Resume: skip already completed waves from previous runs
+        state_file = Path(self.workspace) / "grace_state.json"
+        if state_file.exists():
+            import json as _json
+            try:
+                state_data = _json.loads(state_file.read_text())
+                prev_completed = state_data.get("completed_waves", [])
+                if prev_completed:
+                    # Clear escalation and skip completed waves
+                    print(f"[ORCHESTRATOR] Resuming: {len(prev_completed)} wave(s) already completed")
+                    for cw in prev_completed:
+                        found = False
+                        while self.current_wave is not None:
+                            if self.current_wave.id == cw:
+                                waves_completed += 1
+                                completed_ids.append(cw)
+                                self._advance()
+                                found = True
+                                break
+                            self._advance()
+                        if not found:
+                            print(f"[ORCHESTRATOR] Warning: completed wave {cw} not found in plan")
+            except Exception as e:
+                print(f"[ORCHESTRATOR] Warning: failed to read state file: {e}")
+
         while self.current_wave is not None:
             wave = self.current_wave
             phase = self.current_phase
@@ -233,6 +259,8 @@ Orchestrator execution stopped. Manual intervention required.
             waves_completed=waves_completed,
             completed_wave_ids=completed_ids,
         )
+
+
 
 
 
