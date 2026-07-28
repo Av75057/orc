@@ -40,6 +40,8 @@ class TestMain:
     @patch("src.grace.cli.load_development_plan")
     @patch("src.grace.cli.GraceOrchestrator")
     def test_main_passes_workspace(self, mock_orch_cls, mock_load):
+        import os
+        os.makedirs("/tmp/proj", exist_ok=True)
         mock_load.return_value = MagicMock(phases=[MagicMock()])
         mock_orch = MagicMock()
         mock_orch.run.return_value = MagicMock(status="SUCCESS", waves_completed=1, completed_wave_ids=["WAVE-1"], failure_packet=None)
@@ -58,6 +60,7 @@ class TestMain:
         mock_orch_cls.return_value = mock_orch
         code = main(["docs/test.xml"])
         assert code == 1
+
 
 
 

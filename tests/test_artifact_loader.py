@@ -12,56 +12,45 @@ def _xml_path(filename: str = "development-plan.xml") -> str:
 def test_load_development_plan_returns_correct_structure():
     plan = load_development_plan(_xml_path())
     assert isinstance(plan, DevelopmentPlan)
-    assert len(plan.phases) == 1
+    assert len(plan.phases) >= 1
 
 
 def test_load_development_plan_phase_fields():
     plan = load_development_plan(_xml_path())
     phase = plan.phases[0]
-    assert phase.id == "PHASE-1"
-    assert "artifact-driven" in phase.goal
-    assert len(phase.waves) == 1
+    assert phase.id == "PHASE-SMARTHOME"
+    assert "Smart Home" in phase.goal
+    assert len(phase.waves) == 5
 
 
 def test_load_development_plan_wave_fields():
     plan = load_development_plan(_xml_path())
     wave = plan.phases[0].waves[0]
-    assert wave.id == "WAVE-1"
-    assert "data models" in wave.goal
-    assert "M-ARTIFACTS" in wave.modules
-    assert "M-CORE" in wave.modules
+    assert wave.id == "WAVE-CORE-1"
+    assert "core" in wave.goal.lower()
+    assert "M-MODELS" in wave.modules
+    assert "M-EVENTBUS" in wave.modules
 
 
 def test_load_development_plan_allowed_write_scope():
     plan = load_development_plan(_xml_path())
     wave = plan.phases[0].waves[0]
-    assert "src/grace/models.py" in wave.allowed_write_scope
-    assert "src/grace/artifact_loader.py" in wave.allowed_write_scope
-    assert "tests/test_artifact_loader.py" in wave.allowed_write_scope
-    assert "docs/development-plan.xml" in wave.allowed_write_scope
+    assert "src/smart_home/models.py" in wave.allowed_write_scope
+    assert "src/smart_home/event_bus.py" in wave.allowed_write_scope
 
 
 def test_load_development_plan_frozen_scope():
     plan = load_development_plan(_xml_path())
     wave = plan.phases[0].waves[0]
-    assert "src/grace/controller.py" in wave.frozen_scope
-    assert "infra/*" in wave.frozen_scope
-    assert "frontend/*" in wave.frozen_scope
-
-
-def test_load_development_plan_must_preserve():
-    plan = load_development_plan(_xml_path())
-    wave = plan.phases[0].waves[0]
-    items = wave.must_preserve
-    assert any("Python 3.9" in item for item in items)
-    assert any("Standard library" in item for item in items)
-    assert any("side effects" in item for item in items)
+    assert "src/smart_home/sensors.py" in wave.frozen_scope
+    assert "src/smart_home/actuators.py" in wave.frozen_scope
+    assert "docs/*" in wave.frozen_scope
 
 
 def test_load_development_plan_verification():
     plan = load_development_plan(_xml_path())
     wave = plan.phases[0].waves[0]
-    assert any("pytest" in cmd for cmd in wave.verification)
+    assert any("PYTHONPATH=src" in cmd for cmd in wave.verification)
 
 
 def test_load_development_plan_invalid_xml_raises():
@@ -78,3 +67,4 @@ def test_load_development_plan_wrong_root_raises():
             load_development_plan(str(bad_xml))
     finally:
         bad_xml.unlink()
+

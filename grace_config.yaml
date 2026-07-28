@@ -1,0 +1,40 @@
+profiles:
+  - name: coder-deepseek
+    model: deepseek-chat
+    api_url: https://api.deepseek.com/chat/completions
+    priority: 300
+    effort: medium
+    timeout_seconds: 600
+    roles: [coder]
+
+  - name: coder-gpt55
+    model: gpt-5.5
+    api_url: https://api.openai.com/v1/chat/completions
+    priority: 100
+    effort: high
+    timeout_seconds: 900
+    roles: [coder]
+
+  - name: reviewer-deepseek
+    model: deepseek-chat
+    api_url: https://api.deepseek.com/chat/completions
+    priority: 300
+    effort: medium
+    timeout_seconds: 600
+    roles: [reviewer]
+
+  - name: reviewer-gpt56
+    model: gpt-5.6-sol
+    api_url: https://api.openai.com/v1/chat/completions
+    priority: 400
+    effort: xhigh
+    timeout_seconds: 600
+    roles: [reviewer]
+
+execution:
+  max_retries: 3
+  progress_timeout: 600
+  absolute_timeout: 3600
+  worktree_isolation: false
+  evidence_dir: .grace/evidence
+  log_dir: .grace/logs
