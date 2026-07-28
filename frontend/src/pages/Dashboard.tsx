@@ -54,7 +54,7 @@ export default function Dashboard() {
     try {
       const openaiKey = localStorage.getItem(LS_OPENAI_KEY) || undefined;
       const githubToken = localStorage.getItem(LS_GITHUB_TOKEN) || undefined;
-      const llmModel = localStorage.getItem(LS_LLM_MODEL) || undefined;
+      const llmModel = localStorage.getItem(LS_LLM_MODEL) || "deepseek-chat";
       const llmApiUrl = localStorage.getItem(LS_LLM_API_URL) || undefined;
       const workspace = localStorage.getItem(LS_WORKSPACE) || undefined;
       const result = await runOrchestrator({
@@ -159,6 +159,7 @@ function StatCard({ title, value }: { title: string; value: string }) {
     </div>
   );
 }
+
 
 
 

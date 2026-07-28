@@ -20,8 +20,8 @@ export default function SettingsModal({ onClose }: Props) {
   useEffect(() => {
     setOpenaiKey(localStorage.getItem(LS_OPENAI_KEY) || "");
     setGithubToken(localStorage.getItem(LS_GITHUB_TOKEN) || "");
-    setLlmModel(localStorage.getItem(LS_LLM_MODEL) || "gpt-4o-mini");
-    setLlmApiUrl(localStorage.getItem(LS_LLM_API_URL) || "https://api.openai.com/v1/chat/completions");
+    setLlmModel(localStorage.getItem(LS_LLM_MODEL) || "deepseek-chat");
+    setLlmApiUrl(localStorage.getItem(LS_LLM_API_URL) || "https://api.deepseek.com/chat/completions");
     setWorkspace(localStorage.getItem(LS_WORKSPACE) || "");
   }, []);
 
@@ -47,8 +47,8 @@ export default function SettingsModal({ onClose }: Props) {
     localStorage.removeItem(LS_WORKSPACE);
     setOpenaiKey("");
     setGithubToken("");
-    setLlmModel("gpt-4o-mini");
-    setLlmApiUrl("https://api.openai.com/v1/chat/completions");
+    setLlmModel("deepseek-chat");
+    setLlmApiUrl("https://api.deepseek.com/chat/completions");
     setWorkspace("");
   };
 
@@ -86,5 +86,6 @@ export default function SettingsModal({ onClose }: Props) {
     </div>
   );
 }
+
 
 

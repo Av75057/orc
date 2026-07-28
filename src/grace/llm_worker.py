@@ -58,8 +58,8 @@ class LLMWorker(GraceWorker):
     def __init__(self, workspace: Optional[str] = None):
         super().__init__(workspace)
         self.api_key = os.environ.get("OPENAI_API_KEY", "")
-        self.model = os.environ.get("LLM_MODEL", "gpt-4o-mini")
-        self.api_url = os.environ.get("LLM_API_URL", "https://api.openai.com/v1/chat/completions")
+        self.model = os.environ.get("LLM_MODEL", "deepseek-chat")
+        self.api_url = os.environ.get("LLM_API_URL", "https://api.deepseek.com/chat/completions")
 
     @property
     def name(self) -> str:
@@ -250,6 +250,7 @@ class LLMWorker(GraceWorker):
 
         self._log("execution_finished", "ok")
         return True
+
 
 
 
