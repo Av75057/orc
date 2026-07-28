@@ -18,16 +18,16 @@ def test_load_development_plan_returns_correct_structure():
 def test_load_development_plan_phase_fields():
     plan = load_development_plan(_xml_path())
     phase = plan.phases[0]
-    assert phase.id == "PHASE-SMARTHOME"
-    assert "Smart Home" in phase.goal
-    assert len(phase.waves) == 5
+    assert phase.id == "PHASE-1"
+    assert "EventBus" in phase.goal
+    assert len(phase.waves) == 1
 
 
 def test_load_development_plan_wave_fields():
     plan = load_development_plan(_xml_path())
     wave = plan.phases[0].waves[0]
-    assert wave.id == "WAVE-CORE-1"
-    assert "core" in wave.goal.lower()
+    assert wave.id == "WAVE-1"
+    assert "eventbus" in wave.goal.lower()
     assert "M-MODELS" in wave.modules
     assert "M-EVENTBUS" in wave.modules
 
@@ -67,4 +67,6 @@ def test_load_development_plan_wrong_root_raises():
             load_development_plan(str(bad_xml))
     finally:
         bad_xml.unlink()
+
+
 

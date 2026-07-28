@@ -1,62 +1,91 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<KnowledgeGraph id="KG-SMARTHOME" version="2.0" last_review="2026-07-28">
-
-  <ModuleGraph>
+<KnowledgeGraph>
+  <Modules>
     <Module id="M-MODELS">
       <Name>Models</Name>
       <File>src/smart_home/models.py</File>
-      <Purpose>Shared data models: Event (frozen dataclass), Device (base class).</Purpose>
-      <Owns><File>src/smart_home/models.py</File></Owns>
+      <Responsibility>Shared data models: Event, Device</Responsibility>
+      <UseCaseLinks><Ref>UC-01</Ref><Ref>UC-06</Ref></UseCaseLinks>
     </Module>
     <Module id="M-EVENTBUS">
       <Name>EventBus</Name>
       <File>src/smart_home/event_bus.py</File>
-      <Purpose>Central event bus. Publish/subscribe by topic. Synchronous delivery. Error isolation.</Purpose>
-      <Owns><File>src/smart_home/event_bus.py</File><File>tests/test_event_bus.py</File></Owns>
-      <Dependencies><Dep ref="M-MODELS" /></Dependencies>
+      <Responsibility>Central event bus. Publish/subscribe by topic.</Responsibility>
+      <UseCaseLinks><Ref>UC-01</Ref></UseCaseLinks>
+      <DependsOn><Ref>M-MODELS</Ref></DependsOn>
     </Module>
-    <Module id="M-TEMPSENSOR">
-      <Name>TemperatureSensor</Name>
+    <Module id="M-SENSORS">
+      <Name>Sensors</Name>
       <File>src/smart_home/sensors.py</File>
-      <Purpose>Generates "sensor.temperature" events with numeric value.</Purpose>
-      <Owns><File>src/smart_home/sensors.py</File><File>tests/test_sensors.py</File></Owns>
-      <Dependencies><Dep ref="M-MODELS" /><Dep ref="M-EVENTBUS" /></Dependencies>
+      <Responsibility>TemperatureSensor and MotionSensor</Responsibility>
+      <UseCaseLinks><Ref>UC-02</Ref><Ref>UC-03</Ref></UseCaseLinks>
+      <DependsOn><Ref>M-MODELS</Ref><Ref>M-EVENTBUS</Ref></DependsOn>
     </Module>
-    <Module id="M-MOTIONSENSOR">
-      <Name>MotionSensor</Name>
-      <File>src/smart_home/sensors.py</File>
-      <Purpose>Generates "sensor.motion" events with boolean value.</Purpose>
-      <Owns><File>src/smart_home/sensors.py</File><File>tests/test_sensors.py</File></Owns>
-      <Dependencies><Dep ref="M-MODELS" /><Dep ref="M-EVENTBUS" /></Dependencies>
-    </Module>
-    <Module id="M-THERMOSTAT">
-      <Name>Thermostat</Name>
+    <Module id="M-ACTUATORS">
+      <Name>Actuators</Name>
       <File>src/smart_home/actuators.py</File>
-      <Purpose>Subscribes to temperature. Heater ON when temp < threshold.</Purpose>
-      <Owns><File>src/smart_home/actuators.py</File><File>tests/test_actuators.py</File></Owns>
-      <Dependencies><Dep ref="M-MODELS" /><Dep ref="M-EVENTBUS" /></Dependencies>
+      <Responsibility>Thermostat and LightBulb</Responsibility>
+      <UseCaseLinks><Ref>UC-02</Ref><Ref>UC-03</Ref></UseCaseLinks>
+      <DependsOn><Ref>M-MODELS</Ref><Ref>M-EVENTBUS</Ref></DependsOn>
     </Module>
-    <Module id="M-LIGHTBULB">
-      <Name>LightBulb</Name>
-      <File>src/smart_home/actuators.py</File>
-      <Purpose>Subscribes to motion. Light ON when motion == True.</Purpose>
-      <Owns><File>src/smart_home/actuators.py</File><File>tests/test_actuators.py</File></Owns>
-      <Dependencies><Dep ref="M-MODELS" /><Dep ref="M-EVENTBUS" /></Dependencies>
-    </Module>
-    <Module id="M-CONTROLLER-SH">
+    <Module id="M-CONTROLLER">
       <Name>SmartHomeController</Name>
       <File>src/smart_home/controller.py</File>
-      <Purpose>Creates EventBus, registers devices, provides integration scenarios.</Purpose>
-      <Owns><File>src/smart_home/controller.py</File><File>tests/test_integration.py</File></Owns>
-      <Dependencies><Dep ref="M-MODELS" /><Dep ref="M-EVENTBUS" /><Dep ref="M-TEMPSENSOR" /><Dep ref="M-MOTIONSENSOR" /><Dep ref="M-THERMOSTAT" /><Dep ref="M-LIGHTBULB" /></Dependencies>
+      <Responsibility>Creates EventBus, registers devices, provides scenarios</Responsibility>
+      <UseCaseLinks><Ref>UC-04</Ref></UseCaseLinks>
+      <DependsOn><Ref>M-MODELS</Ref><Ref>M-EVENTBUS</Ref><Ref>M-SENSORS</Ref><Ref>M-ACTUATORS</Ref></DependsOn>
     </Module>
     <Module id="M-MAIN">
       <Name>Main CLI</Name>
       <File>src/smart_home/main.py</File>
-      <Purpose>CLI entrypoint. Creates controller, runs scenarios, outputs JSON.</Purpose>
-      <Owns><File>src/smart_home/main.py</File><File>tests/test_main.py</File></Owns>
-      <Dependencies><Dep ref="M-CONTROLLER-SH" /></Dependencies>
+      <Responsibility>CLI entrypoint</Responsibility>
+      <UseCaseLinks><Ref>UC-05</Ref></UseCaseLinks>
+      <DependsOn><Ref>M-CONTROLLER</Ref></DependsOn>
     </Module>
-  </ModuleGraph>
+    <Module id="M-TESTS">
+      <Name>Test Suite</Name>
+      <File>tests/</File>
+      <Responsibility>Deterministic verification</Responsibility>
+      <UseCaseLinks><Ref>UC-06</Ref></UseCaseLinks>
+    </Module>
+  </Modules>
 
+  <UseCases>
+    <UseCase id="UC-01"><Name>Event publish/subscribe</Name><Modules><Ref>M-EVENTBUS</Ref><Ref>M-MODELS</Ref></Modules><Invariants><Ref>INV-01</Ref><Ref>INV-04</Ref><Ref>INV-06</Ref></Invariants></UseCase>
+    <UseCase id="UC-02"><Name>Temperature monitoring + thermostat</Name><Modules><Ref>M-SENSORS</Ref><Ref>M-ACTUATORS</Ref></Modules><Invariants><Ref>INV-01</Ref><Ref>INV-02</Ref></Invariants></UseCase>
+    <UseCase id="UC-03"><Name>Motion detection + light control</Name><Modules><Ref>M-SENSORS</Ref><Ref>M-ACTUATORS</Ref></Modules><Invariants><Ref>INV-01</Ref><Ref>INV-03</Ref></Invariants></UseCase>
+    <UseCase id="UC-04"><Name>Smart home orchestration</Name><Modules><Ref>M-CONTROLLER</Ref></Modules><Invariants><Ref>INV-05</Ref></Invariants></UseCase>
+    <UseCase id="UC-05"><Name>CLI entrypoint with JSON output</Name><Modules><Ref>M-MAIN</Ref></Modules></UseCase>
+    <UseCase id="UC-06"><Name>Deterministic verification</Name><Modules><Ref>M-TESTS</Ref></Modules></UseCase>
+  </UseCases>
+
+  <Invariants>
+    <Invariant id="INV-01">Every event delivered to all subscribers exactly once</Invariant>
+    <Invariant id="INV-02">Thermostat.is_on == True iff temp &lt; threshold</Invariant>
+    <Invariant id="INV-03">LightBulb.is_on == True iff motion == True</Invariant>
+    <Invariant id="INV-04">EventBus does not lose subscribers during publish</Invariant>
+    <Invariant id="INV-05">Controller does not modify EventBus directly</Invariant>
+    <Invariant id="INV-06">Event is immutable</Invariant>
+  </Invariants>
+
+  <Defects>
+    <Defect id="DEFECT-01"><Description>Sync delivery blocks on slow subscriber</Description><Status>accepted</Status></Defect>
+    <Defect id="DEFECT-02"><Description>No sensor calibration</Description><Status>accepted</Status></Defect>
+  </Defects>
+
+  <CrossLinks>
+    <Link from="UC-01" to="M-EVENTBUS" type="use-case-to-module"/>
+    <Link from="UC-02" to="M-SENSORS" type="use-case-to-module"/>
+    <Link from="UC-02" to="M-ACTUATORS" type="use-case-to-module"/>
+    <Link from="UC-03" to="M-SENSORS" type="use-case-to-module"/>
+    <Link from="UC-03" to="M-ACTUATORS" type="use-case-to-module"/>
+    <Link from="UC-04" to="M-CONTROLLER" type="use-case-to-module"/>
+    <Link from="UC-05" to="M-MAIN" type="use-case-to-module"/>
+    <Link from="UC-06" to="M-TESTS" type="use-case-to-module"/>
+    <Link from="M-EVENTBUS" to="M-MODELS" type="dependency"/>
+    <Link from="M-SENSORS" to="M-EVENTBUS" type="dependency"/>
+    <Link from="M-ACTUATORS" to="M-EVENTBUS" type="dependency"/>
+    <Link from="M-CONTROLLER" to="M-EVENTBUS" type="dependency"/>
+    <Link from="M-MAIN" to="M-CONTROLLER" type="dependency"/>
+  </CrossLinks>
 </KnowledgeGraph>

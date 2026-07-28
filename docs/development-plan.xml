@@ -1,11 +1,11 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<DevelopmentPlan id="PLAN-SMARTHOME" version="2.0" last_review="2026-07-28">
-
-  <Phase id="PHASE-SMARTHOME">
-    <Goal>Implement event-driven Smart Home Automation System.</Goal>
-
-    <Wave id="WAVE-CORE-1">
-      <Goal>Stabilize core: data models and event bus.</Goal>
+<DevelopmentPlan>
+  <Phase id="PHASE-1">
+    <Goal>EventBus core</Goal>
+    <GateCriteria>
+      <Criterion>WAVE-1 tests pass</Criterion>
+    </GateCriteria>
+    <Wave id="WAVE-1">
+      <Goal>Event frozen dataclass and EventBus publish/subscribe</Goal>
       <ModuleRef id="M-MODELS" />
       <ModuleRef id="M-EVENTBUS" />
       <AllowedWriteScope>
@@ -21,21 +21,37 @@
         <File>src/smart_home/main.py</File>
         <File>docs/*</File>
       </FrozenScope>
+      <MustPreserve>
+        <Item>Event is frozen dataclass</Item>
+        <Item>EventBus delivers to all subscribers exactly once</Item>
+        <Item>Subscriber error does not interrupt delivery</Item>
+      </MustPreserve>
       <Verification>
         <Command>PYTHONPATH=src python -m pytest tests/test_event_bus.py -v</Command>
       </Verification>
       <AcceptanceCriteria>
-        <Criterion>Event — frozen dataclass with topic and payload.</Criterion>
-        <Criterion>EventBus.publish delivers to all subscribers.</Criterion>
-        <Criterion>subscribe/unsubscribe work correctly.</Criterion>
-        <Criterion>Subscriber error does not interrupt delivery.</Criterion>
-        <Criterion>Duplicate subscribe is ignored.</Criterion>
+        <Criterion>Event frozen dataclass with topic and payload</Criterion>
+        <Criterion>EventBus delivers to all subscribers</Criterion>
       </AcceptanceCriteria>
-      <DeferredWork><Item>Async delivery — deferred</Item></DeferredWork>
+      <TraceAssertions>
+        <Assertion>EventBus.publish delivers to subscribers</Assertion>
+      </TraceAssertions>
+      <UseCaseRefs>
+        <Ref>UC-01</Ref>
+      </UseCaseRefs>
+      <DeferredWork>
+        <Item>Async delivery deferred</Item>
+      </DeferredWork>
     </Wave>
-
-    <Wave id="WAVE-SENSORS-2">
-      <Goal>Implement sensors that publish events via EventBus.</Goal>
+  </Phase>
+  <Phase id="PHASE-2">
+    <Goal>Sensors</Goal>
+    <GateCriteria>
+      <Criterion>WAVE-2 tests pass</Criterion>
+    </GateCriteria>
+    <Wave id="WAVE-2">
+      <Goal>TemperatureSensor and MotionSensor</Goal>
+      <ModuleRef id="M-SENSORS" />
       <AllowedWriteScope>
         <File>src/smart_home/sensors.py</File>
         <File>tests/test_sensors.py</File>
@@ -48,19 +64,36 @@
         <File>src/smart_home/main.py</File>
         <File>docs/*</File>
       </FrozenScope>
+      <MustPreserve>
+        <Item>Sensors accept EventBus in constructor</Item>
+      </MustPreserve>
       <Verification>
         <Command>PYTHONPATH=src python -m pytest tests/test_sensors.py -v</Command>
       </Verification>
       <AcceptanceCriteria>
-        <Criterion>TemperatureSensor.read(value) publishes Event("sensor.temperature", value).</Criterion>
-        <Criterion>MotionSensor.detect(bool) publishes Event("sensor.motion", bool).</Criterion>
-        <Criterion>Sensors accept EventBus in constructor.</Criterion>
+        <Criterion>TemperatureSensor.read publishes sensor.temperature</Criterion>
+        <Criterion>MotionSensor.detect publishes sensor.motion</Criterion>
       </AcceptanceCriteria>
-      <DeferredWork><Item>Sensor calibration — deferred</Item></DeferredWork>
+      <TraceAssertions>
+        <Assertion>Sensor read -> EventBus.publish</Assertion>
+      </TraceAssertions>
+      <UseCaseRefs>
+        <Ref>UC-02</Ref>
+        <Ref>UC-03</Ref>
+      </UseCaseRefs>
+      <DeferredWork>
+        <Item>Sensor calibration deferred</Item>
+      </DeferredWork>
     </Wave>
-
-    <Wave id="WAVE-ACTUATORS-3">
-      <Goal>Implement actuators subscribed to sensor events.</Goal>
+  </Phase>
+  <Phase id="PHASE-3">
+    <Goal>Actuators</Goal>
+    <GateCriteria>
+      <Criterion>WAVE-3 tests pass</Criterion>
+    </GateCriteria>
+    <Wave id="WAVE-3">
+      <Goal>Thermostat and LightBulb</Goal>
+      <ModuleRef id="M-ACTUATORS" />
       <AllowedWriteScope>
         <File>src/smart_home/actuators.py</File>
         <File>tests/test_actuators.py</File>
@@ -73,20 +106,39 @@
         <File>src/smart_home/main.py</File>
         <File>docs/*</File>
       </FrozenScope>
+      <MustPreserve>
+        <Item>Thermostat.is_on follows threshold</Item>
+        <Item>LightBulb.is_on follows motion</Item>
+      </MustPreserve>
       <Verification>
         <Command>PYTHONPATH=src python -m pytest tests/test_actuators.py -v</Command>
       </Verification>
       <AcceptanceCriteria>
-        <Criterion>Thermostat subscribed to sensor.temperature.</Criterion>
-        <Criterion>Thermostat.is_on follows threshold logic.</Criterion>
-        <Criterion>LightBulb subscribed to sensor.motion.</Criterion>
-        <Criterion>LightBulb.is_on follows motion state.</Criterion>
+        <Criterion>Thermostat subscribed to sensor.temperature</Criterion>
+        <Criterion>LightBulb subscribed to sensor.motion</Criterion>
       </AcceptanceCriteria>
-      <DeferredWork><Item>Thermostat hysteresis — deferred</Item></DeferredWork>
+      <TraceAssertions>
+        <Assertion>EventBus publish temperature -> Thermostat ON when cold</Assertion>
+        <Assertion>EventBus publish motion -> LightBulb ON when motion</Assertion>
+      </TraceAssertions>
+      <UseCaseRefs>
+        <Ref>UC-02</Ref>
+        <Ref>UC-03</Ref>
+      </UseCaseRefs>
+      <DeferredWork>
+        <Item>Hysteresis deferred</Item>
+      </DeferredWork>
     </Wave>
-
-    <Wave id="WAVE-INTEGRATION-4">
-      <Goal>Assemble all modules into SmartHomeController with CLI.</Goal>
+  </Phase>
+  <Phase id="PHASE-4">
+    <Goal>Controller + CLI</Goal>
+    <GateCriteria>
+      <Criterion>WAVE-4 tests pass</Criterion>
+    </GateCriteria>
+    <Wave id="WAVE-4">
+      <Goal>SmartHomeController and main.py</Goal>
+      <ModuleRef id="M-CONTROLLER" />
+      <ModuleRef id="M-MAIN" />
       <AllowedWriteScope>
         <File>src/smart_home/controller.py</File>
         <File>src/smart_home/main.py</File>
@@ -100,22 +152,41 @@
         <File>src/smart_home/actuators.py</File>
         <File>docs/*</File>
       </FrozenScope>
+      <MustPreserve>
+        <Item>Controller creates EventBus and registers devices</Item>
+        <Item>main.py outputs valid JSON</Item>
+      </MustPreserve>
       <Verification>
         <Command>PYTHONPATH=src python -m pytest tests/test_integration.py tests/test_main.py -v</Command>
         <Command>PYTHONPATH=src python -m smart_home.main</Command>
       </Verification>
       <AcceptanceCriteria>
-        <Criterion>SmartHomeController creates EventBus and registers devices.</Criterion>
-        <Criterion>simulate_cold_temp() toggles Thermostat ON.</Criterion>
-        <Criterion>simulate_motion() toggles LightBulb ON.</Criterion>
-        <Criterion>simulate_all_clear() toggles both OFF.</Criterion>
-        <Criterion>main.py outputs JSON, exit code 0.</Criterion>
+        <Criterion>simulate_cold_temp turns Thermostat ON</Criterion>
+        <Criterion>simulate_motion turns LightBulb ON</Criterion>
+        <Criterion>simulate_all_clear turns both OFF</Criterion>
+        <Criterion>main.py outputs valid JSON</Criterion>
       </AcceptanceCriteria>
-      <DeferredWork><Item>Extended scenarios — deferred</Item></DeferredWork>
+      <TraceAssertions>
+        <Assertion>simulate_cold_temp -> Thermostat ON</Assertion>
+        <Assertion>simulate_motion -> LightBulb ON</Assertion>
+      </TraceAssertions>
+      <UseCaseRefs>
+        <Ref>UC-04</Ref>
+        <Ref>UC-05</Ref>
+      </UseCaseRefs>
+      <DeferredWork>
+        <Item>Extended scenarios deferred</Item>
+      </DeferredWork>
     </Wave>
-
-    <Wave id="WAVE-TESTS-5">
-      <Goal>Full verification: all tests pass, scope clean.</Goal>
+  </Phase>
+  <Phase id="PHASE-5">
+    <Goal>Full verification</Goal>
+    <GateCriteria>
+      <Criterion>All tests pass</Criterion>
+    </GateCriteria>
+    <Wave id="WAVE-5">
+      <Goal>Full test suite verification</Goal>
+      <ModuleRef id="M-TESTS" />
       <AllowedWriteScope>
         <File>tests/test_event_bus.py</File>
         <File>tests/test_sensors.py</File>
@@ -127,18 +198,22 @@
         <File>src/smart_home/*</File>
         <File>docs/*</File>
       </FrozenScope>
+      <MustPreserve>
+        <Item>All src/smart_home files unchanged</Item>
+      </MustPreserve>
       <Verification>
         <Command>PYTHONPATH=src python -m pytest tests/ -v</Command>
       </Verification>
       <AcceptanceCriteria>
-        <Criterion>All tests pass, exit code 0.</Criterion>
-        <Criterion>INV-01..INV-06 covered by tests.</Criterion>
-        <Criterion>FAIL-01..FAIL-04 covered by tests.</Criterion>
-        <Criterion>No src/ files modified.</Criterion>
+        <Criterion>All tests pass, exit code 0</Criterion>
+        <Criterion>No src files modified</Criterion>
       </AcceptanceCriteria>
+      <TraceAssertions>
+        <Assertion>Full pipeline: Sensor -> EventBus -> Actuator -> JSON</Assertion>
+      </TraceAssertions>
+      <UseCaseRefs>
+        <Ref>UC-06</Ref>
+      </UseCaseRefs>
     </Wave>
-
   </Phase>
-
 </DevelopmentPlan>
-
